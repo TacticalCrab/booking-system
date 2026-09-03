@@ -2,6 +2,8 @@ package com.example.bookingsystem.user;
 
 import com.example.bookingsystem.user.dto.CreateUserRequest;
 import com.example.bookingsystem.user.dto.UserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +20,8 @@ class UserController {
     }
 
     @GetMapping
-    public List<UserResponse> getAll() {
-        return service.getAll();
+    public Page<UserResponse> getAll(Pageable pageable) {
+        return service.getAll(pageable);
     }
 
     @GetMapping("/{id}")

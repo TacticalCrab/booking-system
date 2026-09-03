@@ -3,6 +3,9 @@ package com.example.bookingsystem.employee;
 import com.example.bookingsystem.employee.dto.CreateEmployeeRequest;
 import com.example.bookingsystem.employee.dto.EmployeeResponse;
 import com.example.bookingsystem.employee.dto.UpdateEmployeeRequest;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,8 +24,8 @@ class EmployeeController {
     }
 
     @GetMapping
-    public List<EmployeeResponse> getAll() {
-        return service.getAll();
+    public Page<EmployeeResponse> getAll(Pageable pageable) {
+        return service.getAll(pageable);
     }
 
     @GetMapping("/{id}")
@@ -35,15 +38,15 @@ class EmployeeController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EmployeeResponse create(
-            @RequestBody CreateEmployeeRequest request
-            ) {
+            @Valid @RequestBody CreateEmployeeRequest request
+    ) {
         return service.create(request);
     }
 
     @PutMapping("/{id}")
     public EmployeeResponse update(
             @PathVariable Long id,
-            @RequestBody UpdateEmployeeRequest request
+            @Valid @RequestBody UpdateEmployeeRequest request
     ) {
         return service.update(id, request);
     }

@@ -1,14 +1,26 @@
 package com.example.bookingsystem.booking.dto;
 
 import com.example.bookingsystem.booking.BookingStatus;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDateTime;
 
 public record CreateBookingRequest(
+        @NotNull
+        @Positive
         Long userId,
+
+        @NotNull
+        @Positive
         Long employeeId,
+
+        @NotNull
+        @Positive
         Long serviceId,
-        LocalDateTime startTime,
-        LocalDateTime endTime,
-        BookingStatus status
+
+        @NotNull
+        @FutureOrPresent
+        LocalDateTime startTime
 ) { }

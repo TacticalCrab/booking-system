@@ -2,6 +2,9 @@ package com.example.bookingsystem.booking;
 
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +22,8 @@ class BookingController {
     }
 
     @GetMapping
-    public List<BookingResponse> getAll() {
-        return service.getAll();
+    public Page<BookingResponse> getAll(Pageable pageable) {
+        return service.getAll(pageable);
     }
 
     @GetMapping("/{id}")
@@ -33,7 +36,7 @@ class BookingController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public BookingResponse create(
-           @RequestBody CreateBookingRequest request
+           @Valid @RequestBody CreateBookingRequest request
     ) {
         return service.create(request);
     }

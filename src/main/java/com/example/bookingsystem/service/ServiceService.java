@@ -5,6 +5,9 @@ import com.example.bookingsystem.service.dto.CreateServiceRequest;
 import com.example.bookingsystem.service.dto.ServiceResponse;
 import com.example.bookingsystem.service.dto.UpdateServiceRequest;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,12 +22,10 @@ class ServiceService {
         repository = serviceRepository;
     }
 
-    public List<ServiceResponse> getAll() {
+    public Page<ServiceResponse> getAll(Pageable pageable) {
         return repository
-                .findAll()
-                .stream()
-                .map(ServiceMapper::toResponse)
-                .toList();
+                .findAll(pageable)
+                .map(ServiceMapper::toResponse);
     }
 
     public ServiceResponse getById(Long id) {

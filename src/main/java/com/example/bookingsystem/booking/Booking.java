@@ -9,11 +9,18 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="bookings")
+@Table(
+        name="bookings",
+        check = @CheckConstraint(
+                name = "chk_booking_time",
+                constraint = "end_time > start_time"
+        )
+)
 public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(columnDefinition = "INTEGER")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -28,10 +35,10 @@ public class Booking {
     @JoinColumn(name = "service_id", nullable = false)
     private ServiceEntity service;
 
-    @Column(nullable = false)
+    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
-    @Column(nullable = false)
+    @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
     @Enumerated(EnumType.STRING)

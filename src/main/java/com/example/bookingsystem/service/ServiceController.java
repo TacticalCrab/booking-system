@@ -3,6 +3,9 @@ package com.example.bookingsystem.service;
 import com.example.bookingsystem.service.dto.CreateServiceRequest;
 import com.example.bookingsystem.service.dto.ServiceResponse;
 import com.example.bookingsystem.service.dto.UpdateServiceRequest;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,8 +24,8 @@ class ServiceController {
     }
 
     @GetMapping
-    public List<ServiceResponse> getAll() {
-        return service.getAll();
+    public Page<ServiceResponse> getAll(Pageable pageable) {
+        return service.getAll(pageable);
     }
 
     @GetMapping("/{id}")
@@ -35,7 +38,7 @@ class ServiceController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ServiceResponse create(
-            @RequestBody CreateServiceRequest request
+            @Valid @RequestBody CreateServiceRequest request
     ) {
         return service.create(request);
     }
@@ -43,7 +46,7 @@ class ServiceController {
     @PutMapping("/{id}")
     public ServiceResponse update(
             @PathVariable Long id,
-            @RequestBody UpdateServiceRequest request
+            @Valid @RequestBody UpdateServiceRequest request
     ) {
         return service.update(id, request);
     }

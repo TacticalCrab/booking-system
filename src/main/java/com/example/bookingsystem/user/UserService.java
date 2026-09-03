@@ -3,6 +3,8 @@ package com.example.bookingsystem.user;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.user.dto.CreateUserRequest;
 import com.example.bookingsystem.user.dto.UserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,12 +23,10 @@ class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public List<UserResponse> getAll() {
+    public Page<UserResponse> getAll(Pageable pageable) {
         return repository
-                .findAll()
-                .stream()
-                .map(UserMapper::toResponse)
-                .toList();
+                .findAll(pageable)
+                .map(UserMapper::toResponse);
     }
 
     public UserResponse getById(Long id) {

@@ -2,6 +2,8 @@ package com.example.bookingsystem.booking;
 
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
+import com.example.bookingsystem.booking.exception.InvalidBookingException;
+import com.example.bookingsystem.common.exception.InvalidTimeException;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.EmployeeRepository;
@@ -10,6 +12,8 @@ import com.example.bookingsystem.service.ServiceRepository;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -33,12 +37,10 @@ class BookingService {
         this.serviceRepository = serviceRepository;
     }
 
-    public List<BookingResponse> getAll() {
+    public Page<BookingResponse> getAll(Pageable pageable) {
         return repository
-                .findAll()
-                .stream()
-                .map(BookingMapper::toResponse)
-                .toList();
+                .findAll(pageable)
+                .map(BookingMapper::toResponse);
     }
 
     public BookingResponse getById(Long id) {
@@ -63,13 +65,22 @@ class BookingService {
                 .findById(request.serviceId())
                 .orElseThrow(() -> new NotFoundException("Service", request.serviceId()));
 
+        if (!employee.getServices().contains(service)) {
+            throw new InvalidBookingException(
+                    "Employee does not provide this service"
+            );
+        }
+
+        LocalDateTime endTime = request.startTime()
+                .plusMinutes(service.getDurationMinutes());
+
         Booking booking = new Booking(
                 user,
                 employee,
                 service,
                 request.startTime(),
-                request.endTime(),
-                request.status(),
+                endTime,
+                BookingStatus.CONFIRMED,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

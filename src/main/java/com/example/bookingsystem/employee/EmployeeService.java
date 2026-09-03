@@ -6,6 +6,8 @@ import com.example.bookingsystem.employee.dto.EmployeeResponse;
 import com.example.bookingsystem.employee.dto.UpdateEmployeeRequest;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.service.ServiceRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,12 +30,10 @@ class EmployeeService {
         this.serviceRepository = serviceRepository;
     }
 
-    public List<EmployeeResponse> getAll() {
+    public Page<EmployeeResponse> getAll(Pageable pageable) {
         return repository
-                .findAll()
-                .stream()
-                .map(EmployeeMapper::toResponse)
-                .toList();
+                .findAll(pageable)
+                .map(EmployeeMapper::toResponse);
     }
 
     public EmployeeResponse getById(Long id) {

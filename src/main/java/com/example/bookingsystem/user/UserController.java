@@ -2,6 +2,7 @@ package com.example.bookingsystem.user;
 
 import com.example.bookingsystem.user.dto.CreateUserRequest;
 import com.example.bookingsystem.user.dto.UserResponse;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,7 @@ class UserController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse create(
-            @RequestBody CreateUserRequest request
+            @Valid @RequestBody CreateUserRequest request
     ) {
         return service.create(request);
     }

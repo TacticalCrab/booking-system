@@ -65,6 +65,16 @@ public class SecurityConfig {
                         .authenticated()
 
                         .anyRequest().authenticated()
+                )
+
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout")
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies("JSESSIONID")
+                        .logoutSuccessHandler((request, response, authentication) ->
+                                response.setStatus(HttpServletResponse.SC_NO_CONTENT)
+                        )
                 );
 
         return http.build();

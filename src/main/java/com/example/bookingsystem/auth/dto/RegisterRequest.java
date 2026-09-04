@@ -1,11 +1,10 @@
-package com.example.bookingsystem.user.dto;
+package com.example.bookingsystem.auth.dto;
 
-import com.example.bookingsystem.user.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record CreateUserRequest(
+public record RegisterRequest(
         @NotBlank
         @Email
         String email,
@@ -16,7 +15,5 @@ public record CreateUserRequest(
 
         @NotBlank
         @Size(min=1)
-        String name,
-
-        UserRole role
+        String name
 ) {}

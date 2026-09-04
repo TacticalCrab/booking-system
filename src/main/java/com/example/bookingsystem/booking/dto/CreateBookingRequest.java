@@ -10,10 +10,6 @@ import java.time.LocalDateTime;
 public record CreateBookingRequest(
         @NotNull
         @Positive
-        Long userId,
-
-        @NotNull
-        @Positive
         Long employeeId,
 
         @NotNull

@@ -10,4 +10,8 @@ public class NotFoundException extends RuntimeException {
     public NotFoundException(String resource, Collection<?> id) {
         super(resource + " with ids " + id + " were not found");
     }
+
+    public NotFoundException(String resource, String matcher, Object value) {
+        super(resource + " with " + matcher + " " + value + " were not found");
+    }
 }

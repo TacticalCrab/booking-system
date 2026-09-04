@@ -1,5 +1,6 @@
 package com.example.bookingsystem.service;
 
+import com.example.bookingsystem.auth.annotation.AdminOnly;
 import com.example.bookingsystem.service.dto.CreateServiceRequest;
 import com.example.bookingsystem.service.dto.ServiceResponse;
 import com.example.bookingsystem.service.dto.UpdateServiceRequest;
@@ -35,6 +36,7 @@ class ServiceController {
         return service.getById(id);
     }
 
+    @AdminOnly
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ServiceResponse create(
@@ -43,6 +45,7 @@ class ServiceController {
         return service.create(request);
     }
 
+    @AdminOnly
     @PutMapping("/{id}")
     public ServiceResponse update(
             @PathVariable Long id,
@@ -51,6 +54,7 @@ class ServiceController {
         return service.update(id, request);
     }
 
+    @AdminOnly
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(

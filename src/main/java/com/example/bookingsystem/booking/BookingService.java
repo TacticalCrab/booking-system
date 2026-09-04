@@ -1,5 +1,6 @@
 package com.example.bookingsystem.booking;
 
+import com.example.bookingsystem.auth.exception.AccessDeniedException;
 import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
@@ -135,14 +136,14 @@ class BookingService {
     ) {
         User currentUser = userRepository
                 .findByEmail(authenticatedUserEmail)
-                .orElseThrow(AuthenticationFailedException::new);
+                .orElseThrow(AccessDeniedException::new);
 
         Booking booking = repository
                 .findById(id)
                 .orElseThrow(() -> new NotFoundException("Booking", id));
 
         if (!booking.isOwnedBy(currentUser.getId()) && !currentUser.isAdmin()) {
-            throw new AuthenticationFailedException();
+            throw new AccessDeniedException();
         }
 
         return booking;

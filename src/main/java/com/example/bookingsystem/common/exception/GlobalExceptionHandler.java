@@ -1,5 +1,6 @@
 package com.example.bookingsystem.common.exception;
 
+import com.example.bookingsystem.auth.exception.AccessDeniedException;
 import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
 import com.example.bookingsystem.user.exception.UserAlreadyExistsException;
@@ -18,6 +19,13 @@ public class GlobalExceptionHandler {
             AuthenticationFailedException exception
     ) {
         return buildError(HttpStatus.BAD_REQUEST, exception);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(
+            AccessDeniedException exception
+    ) {
+        return buildError(HttpStatus.FORBIDDEN, exception);
     }
 
     @ExceptionHandler(NotFoundException.class)

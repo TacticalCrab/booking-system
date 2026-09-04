@@ -85,8 +85,6 @@ class EmployeeService {
 
         employee.setServices(services);
 
-        Employee savedEmployee = repository.save(employee);
-
-        return EmployeeMapper.toResponse(savedEmployee);
+        return EmployeeMapper.toResponse(employee);
     }
 }

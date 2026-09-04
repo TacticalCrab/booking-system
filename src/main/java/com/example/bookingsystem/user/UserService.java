@@ -3,15 +3,17 @@ package com.example.bookingsystem.user;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.user.dto.CreateUserRequest;
 import com.example.bookingsystem.user.dto.UserResponse;
+import com.example.bookingsystem.user.exception.UserAlreadyExistsException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
-class UserService {
+public class UserService {
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
 
@@ -37,14 +39,29 @@ class UserService {
         return UserMapper.toResponse(user);
     }
 
+    public UserResponse getByEmail(String email) {
+        User user = repository
+                .findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User", "email", email));
+
+        return UserMapper.toResponse(user);
+    }
+
     public UserResponse create(CreateUserRequest request) {
+        if (repository.findByEmail(request.email()).isPresent()) {
+            throw new UserAlreadyExistsException("User with this email already exists");
+        }
+
         String passwordHash = passwordEncoder.encode(request.password());
+
+        UserRole role = Optional.ofNullable(request.role())
+                .orElse(UserRole.CUSTOMER);
 
         User user = new User(
                 request.email(),
                 passwordHash,
                 request.name(),
-                UserRole.CUSTOMER
+                role
         );
 
         User savedUser = repository.save(user);

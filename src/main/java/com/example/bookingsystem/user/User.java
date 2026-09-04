@@ -56,4 +56,12 @@ public class User {
     public UserRole getRole() {
         return role;
     }
+
+    public boolean isAdmin() {
+        return role == UserRole.ADMIN;
+    }
+
+    public boolean isCustomer() {
+        return role == UserRole.CUSTOMER;
+    }
 }

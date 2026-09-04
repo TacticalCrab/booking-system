@@ -1,6 +1,7 @@
 package com.example.bookingsystem.booking;
 
 
+import com.example.bookingsystem.booking.exception.InvalidBookingException;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.user.User;
@@ -139,5 +140,29 @@ public class Booking {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isOwnedBy(Long userId) {
+        return user.getId().equals(userId);
+    }
+
+    public void cancel() {
+        if (status == BookingStatus.COMPLETED) {
+            throw new InvalidBookingException(
+                    "Completed booking cannot be canceled"
+            );
+        }
+
+        if (status == BookingStatus.CANCELLED) {
+            return;
+        }
+
+        status = BookingStatus.CANCELLED;
+        updatedAt = LocalDateTime.now();
+    }
+
+    public void correctCancel(BookingStatus status) {
+        this.status = status;
+        updatedAt = LocalDateTime.now();
     }
 }

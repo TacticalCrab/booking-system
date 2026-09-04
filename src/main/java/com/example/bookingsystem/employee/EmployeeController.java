@@ -1,5 +1,6 @@
 package com.example.bookingsystem.employee;
 
+import com.example.bookingsystem.auth.annotation.AdminOnly;
 import com.example.bookingsystem.employee.dto.CreateEmployeeRequest;
 import com.example.bookingsystem.employee.dto.EmployeeResponse;
 import com.example.bookingsystem.employee.dto.UpdateEmployeeRequest;
@@ -36,6 +37,7 @@ class EmployeeController {
     }
 
     @PostMapping
+    @AdminOnly
     @ResponseStatus(HttpStatus.CREATED)
     public EmployeeResponse create(
             @Valid @RequestBody CreateEmployeeRequest request
@@ -44,6 +46,7 @@ class EmployeeController {
     }
 
     @PutMapping("/{id}")
+    @AdminOnly
     public EmployeeResponse update(
             @PathVariable Long id,
             @Valid @RequestBody UpdateEmployeeRequest request

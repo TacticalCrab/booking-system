@@ -1,5 +1,7 @@
 package com.example.bookingsystem.booking;
 
+import com.example.bookingsystem.auth.exception.AccessDeniedException;
+import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
@@ -30,7 +32,8 @@ class BookingService {
             BookingRepository bookingRepository,
             UserRepository userRepository,
             EmployeeRepository employeeRepository,
-            ServiceRepository serviceRepository) {
+            ServiceRepository serviceRepository
+    ) {
         repository = bookingRepository;
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
@@ -43,19 +46,26 @@ class BookingService {
                 .map(BookingMapper::toResponse);
     }
 
-    public BookingResponse getById(Long id) {
-        Booking booking = repository
-                .findById(id)
-                .orElseThrow(() -> new NotFoundException("Booking", id));
+    public BookingResponse getById(
+            Long id,
+            String authenticatedUserEmail
+    ) {
+        Booking booking = getAuthorizedBooking(id, authenticatedUserEmail);
 
         return BookingMapper.toResponse(booking);
     }
 
+    public Page<BookingResponse> getByUserEmail(String email, Pageable pageable) {
+        return repository
+                .findAllByUserEmail(email, pageable)
+                .map(BookingMapper::toResponse);
+    }
+
     @Transactional
-    public BookingResponse create(CreateBookingRequest request) {
+    public BookingResponse create(String email, CreateBookingRequest request) {
         User user = userRepository
-                .findById(request.userId())
-                .orElseThrow(() -> new NotFoundException("User", request.userId()));
+                .findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User", "email", email));
 
         Employee employee = employeeRepository
                 .findById(request.employeeId())
@@ -90,7 +100,52 @@ class BookingService {
         return BookingMapper.toResponse(savedBooking);
     }
 
+    public BookingResponse updateStatus(Long id, BookingStatus status) {
+        Booking booking = repository
+                .findById(id)
+                .orElseThrow(() -> new NotFoundException("Booking", id));
+
+        booking.setStatus(status);
+        repository.save(booking);
+
+        return BookingMapper.toResponse(booking);
+    }
+
+    public BookingResponse cancel(
+            Long id,
+            String authenticatedUserEmail
+    ) {
+        Booking booking = getAuthorizedBooking(id, authenticatedUserEmail);
+        booking.cancel();
+
+        Booking savedBooking = repository.save(booking);
+
+        return BookingMapper.toResponse(savedBooking);
+    }
+
     public void delete(Long id) {
-        repository.deleteById(id);
+        Booking booking = repository.findById(id)
+                        .orElseThrow(() -> new NotFoundException("Booking", id));
+
+        repository.delete(booking);
+    }
+
+    private Booking getAuthorizedBooking(
+            Long id,
+            String authenticatedUserEmail
+    ) {
+        User currentUser = userRepository
+                .findByEmail(authenticatedUserEmail)
+                .orElseThrow(AccessDeniedException::new);
+
+        Booking booking = repository
+                .findById(id)
+                .orElseThrow(() -> new NotFoundException("Booking", id));
+
+        if (!booking.isOwnedBy(currentUser.getId()) && !currentUser.isAdmin()) {
+            throw new AccessDeniedException();
+        }
+
+        return booking;
     }
 }

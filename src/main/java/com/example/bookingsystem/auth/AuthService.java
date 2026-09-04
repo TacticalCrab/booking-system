@@ -1,12 +1,14 @@
 package com.example.bookingsystem.auth;
 
-import com.example.bookingsystem.auth.dto.LoginRequest;
-import com.example.bookingsystem.auth.dto.LoginResponse;
-import com.example.bookingsystem.auth.dto.RegisterRequest;
+import com.example.bookingsystem.auth.dto.*;
 import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
+import com.example.bookingsystem.auth.refresh.IssuedRefreshToken;
+import com.example.bookingsystem.auth.refresh.RefreshTokenService;
+import com.example.bookingsystem.auth.refresh.RotatedRefreshToken;
 import com.example.bookingsystem.user.dto.CreateUserRequest;
 import com.example.bookingsystem.user.*;
 import com.example.bookingsystem.user.dto.UserResponse;
+import jakarta.transaction.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,17 +23,20 @@ class AuthService {
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthService(
             UserService userService,
             UserRepository userRepository,
             AuthenticationManager authenticationManager,
-            JwtService jwtService
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService
     ) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public UserResponse register(RegisterRequest request) {
@@ -66,13 +71,50 @@ class AuthService {
                     )
             );
 
+            IssuedRefreshToken refreshToken =
+                    refreshTokenService.create(user);
+
             return new LoginResponse(
                     accessToken,
+                    refreshToken.token(),
                     UserMapper.toResponse(user)
             );
 
         } catch (AuthenticationException e) {
             throw new AuthenticationFailedException();
         }
+    }
+
+    @Transactional
+    public RefreshResponse refresh(RefreshRequest request) {
+        RotatedRefreshToken rotated =
+                refreshTokenService.rotate(request.refreshToken());
+
+        User user = rotated.user();
+
+        JwtUserClaims claims = new JwtUserClaims(
+                user.getId(),
+                user.getEmail(),
+                user.getRole()
+        );
+
+        String accessToken = jwtService.generateToken(claims);
+
+        return new RefreshResponse(
+                accessToken,
+                rotated.token()
+        );
+    }
+
+    public void logout(LogoutRequest request) {
+        refreshTokenService.revoke(request.refreshToken());
+    }
+
+    public void logoutAll(String email) {
+        User user = userRepository
+                .findByEmail(email)
+                .orElseThrow(AuthenticationFailedException::new);
+
+        refreshTokenService.revokeAll(user.getId());
     }
 }

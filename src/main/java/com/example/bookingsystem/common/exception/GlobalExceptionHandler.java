@@ -2,6 +2,7 @@ package com.example.bookingsystem.common.exception;
 
 import com.example.bookingsystem.auth.exception.AccessDeniedException;
 import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
+import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
 import com.example.bookingsystem.user.exception.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
@@ -47,6 +48,13 @@ public class GlobalExceptionHandler {
             InvalidBookingException exception
     ) {
         return buildError(HttpStatus.BAD_REQUEST, exception);
+    }
+
+    @ExceptionHandler(BookingConflictException.class)
+    public ResponseEntity<ApiError> handleBookingConflict(
+            BookingConflictException exception
+    ) {
+        return buildError(HttpStatus.CONFLICT, exception);
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)

@@ -1,14 +1,14 @@
 package com.example.bookingsystem.booking;
 
 import com.example.bookingsystem.auth.exception.AccessDeniedException;
-import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
+import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
-import com.example.bookingsystem.common.exception.InvalidTimeException;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.EmployeeRepository;
+import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.service.ServiceRepository;
 import com.example.bookingsystem.user.User;
@@ -18,8 +18,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 class BookingService {
@@ -63,26 +63,19 @@ class BookingService {
 
     @Transactional
     public BookingResponse create(String email, CreateBookingRequest request) {
-        User user = userRepository
-                .findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User", "email", email));
+        User user = getUserByEmailOrThrow(email);
+        Employee employee = getEmployeeByIdOrThrow(request.employeeId());
+        ServiceEntity service = getServiceByIdOrThrow(request.serviceId());
 
-        Employee employee = employeeRepository
-                .findById(request.employeeId())
-                .orElseThrow(() -> new NotFoundException("Employee", request.employeeId()));
+        validateEmployeeProvidesService(employee, service);
 
-        ServiceEntity service = serviceRepository
-                .findById(request.serviceId())
-                .orElseThrow(() -> new NotFoundException("Service", request.serviceId()));
+        LocalDateTime startTime = request.startTime();
+        LocalDateTime endTime = calculateEndTime(startTime, service);
 
-        if (!employee.getServices().contains(service)) {
-            throw new InvalidBookingException(
-                    "Employee does not provide this service"
-            );
-        }
+        validateWorkingHours(employee, startTime, endTime);
+        validateOverlap(employee, startTime, endTime);
 
-        LocalDateTime endTime = request.startTime()
-                .plusMinutes(service.getDurationMinutes());
+        LocalDateTime now = LocalDateTime.now();
 
         Booking booking = new Booking(
                 user,
@@ -91,8 +84,8 @@ class BookingService {
                 request.startTime(),
                 endTime,
                 BookingStatus.CONFIRMED,
-                LocalDateTime.now(),
-                LocalDateTime.now()
+                now,
+                now
         );
 
         Booking savedBooking = repository.save(booking);
@@ -101,9 +94,7 @@ class BookingService {
     }
 
     public BookingResponse updateStatus(Long id, BookingStatus status) {
-        Booking booking = repository
-                .findById(id)
-                .orElseThrow(() -> new NotFoundException("Booking", id));
+        Booking booking = getBookingByIdOrThrow(id);
 
         booking.setStatus(status);
         repository.save(booking);
@@ -124,9 +115,7 @@ class BookingService {
     }
 
     public void delete(Long id) {
-        Booking booking = repository.findById(id)
-                        .orElseThrow(() -> new NotFoundException("Booking", id));
-
+        Booking booking = getBookingByIdOrThrow(id);
         repository.delete(booking);
     }
 
@@ -138,14 +127,96 @@ class BookingService {
                 .findByEmail(authenticatedUserEmail)
                 .orElseThrow(AccessDeniedException::new);
 
-        Booking booking = repository
-                .findById(id)
-                .orElseThrow(() -> new NotFoundException("Booking", id));
+        Booking booking = getBookingByIdOrThrow(id);
 
         if (!booking.isOwnedBy(currentUser.getId()) && !currentUser.isAdmin()) {
             throw new AccessDeniedException();
         }
 
         return booking;
+    }
+
+    private Booking getBookingByIdOrThrow(Long bookingId) {
+        return repository
+            .findById(bookingId)
+            .orElseThrow(() -> new NotFoundException("Booking", bookingId));
+    }
+
+    private User getUserByEmailOrThrow(String email) {
+        return userRepository
+                .findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User", "email", email));
+
+    }
+
+    private Employee getEmployeeByIdOrThrow(Long employeeId) {
+        return employeeRepository
+                .findById(employeeId)
+                .orElseThrow(() -> new NotFoundException("Employee", employeeId));
+
+    }
+
+    private ServiceEntity getServiceByIdOrThrow(Long serviceId) {
+        return serviceRepository
+                .findById(serviceId)
+                .orElseThrow(() -> new NotFoundException("Service", serviceId));
+    }
+
+    private void validateEmployeeProvidesService(
+            Employee employee,
+            ServiceEntity service
+    ) {
+        if (!employee.providesService(service)) {
+            throw new InvalidBookingException(
+                    "Employee does not provide this service"
+            );
+        }
+    }
+
+    private void validateWorkingHours(
+            Employee employee,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        DayOfWeek dayOfWeek = startTime.getDayOfWeek();
+
+        EmployeeWorkingHours workingHours = employee
+                .getWorkingHoursFor(dayOfWeek)
+                .orElseThrow(() -> new InvalidBookingException(
+                        "Employee is not working on this day"
+                ));
+
+        if (!workingHours.contains(
+                startTime,
+                endTime
+        )) {
+            throw new InvalidBookingException(
+                    "Booking is outside of working hours"
+            );
+        }
+    }
+
+    private void validateOverlap(
+            Employee employee,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        boolean bookingOverlaps = repository
+                .existsOverlappingBooking(
+                        employee.getId(),
+                        startTime,
+                        endTime
+                );
+
+        if (bookingOverlaps) {
+            throw new BookingConflictException();
+        }
+    }
+
+    private LocalDateTime calculateEndTime(
+            LocalDateTime startTime,
+            ServiceEntity service
+    ) {
+        return startTime.plusMinutes(service.getDurationMinutes());
     }
 }

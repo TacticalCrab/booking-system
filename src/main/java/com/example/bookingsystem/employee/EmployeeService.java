@@ -1,9 +1,9 @@
 package com.example.bookingsystem.employee;
 
 import com.example.bookingsystem.common.exception.NotFoundException;
-import com.example.bookingsystem.employee.dto.CreateEmployeeRequest;
-import com.example.bookingsystem.employee.dto.EmployeeResponse;
-import com.example.bookingsystem.employee.dto.UpdateEmployeeRequest;
+import com.example.bookingsystem.employee.dto.*;
+import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
+import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHoursMapper;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.service.ServiceRepository;
 import org.springframework.data.domain.Page;
@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,9 +38,7 @@ class EmployeeService {
     }
 
     public EmployeeResponse getById(Long id) {
-        Employee employee = repository
-                .findById(id)
-                .orElseThrow(() -> new NotFoundException("Employee", id));
+        Employee employee = getEmployeeByIdOrThrow(id);
 
         return EmployeeMapper.toResponse(employee);
     }
@@ -62,9 +61,7 @@ class EmployeeService {
 
     @Transactional
     public EmployeeResponse update(Long id, UpdateEmployeeRequest request) {
-        Employee employee = repository
-                .findById(id)
-                .orElseThrow(() -> new NotFoundException("Employee", id));
+        Employee employee = getEmployeeByIdOrThrow(id);
 
         employee.setName(request.name());
         employee.setEmail(request.email());
@@ -86,5 +83,62 @@ class EmployeeService {
         employee.setServices(services);
 
         return EmployeeMapper.toResponse(employee);
+    }
+
+    public List<WorkingHoursResponse> getWorkingHoursByEmployeeId(
+            Long employeeId
+    ) {
+        Employee employee = getEmployeeByIdOrThrow(employeeId);
+
+        return employee.getWorkingHours()
+                .stream()
+                .map(EmployeeWorkingHoursMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void replaceWorkingHours(
+            Long employeeId,
+            List<WorkingHoursRequest> requests
+    ) {
+
+        Employee employee = getEmployeeByIdOrThrow(employeeId);
+
+        validateWorkingHours(requests);
+
+        List<EmployeeWorkingHours> workingHours = requests.stream()
+                .map(request -> new EmployeeWorkingHours(
+                        request.dayOfWeek(),
+                        request.startTime(),
+                        request.endTime()
+                )).toList();
+
+        employee.replaceWorkingHours(workingHours);
+    }
+
+    private Employee getEmployeeByIdOrThrow(
+            Long employeeId
+    ) {
+        return repository
+                .findById(employeeId)
+                .orElseThrow(() -> new NotFoundException("Employee", employeeId));
+    }
+
+    private void validateWorkingHours(List<WorkingHoursRequest> requests) {
+        Set<DayOfWeek> days = new HashSet<>();
+
+        for (WorkingHoursRequest hours: requests) {
+            if (!hours.endTime().isAfter(hours.startTime())) {
+                throw new IllegalArgumentException(
+                        "Working hours end time must be after start time"
+                );
+            }
+
+            if (!days.add(hours.dayOfWeek())) {
+                throw new IllegalArgumentException(
+                        "Duplicate working day: " + hours.dayOfWeek()
+                );
+            }
+        }
     }
 }

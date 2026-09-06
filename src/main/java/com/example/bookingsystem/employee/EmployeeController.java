@@ -1,9 +1,7 @@
 package com.example.bookingsystem.employee;
 
 import com.example.bookingsystem.auth.annotation.AdminOnly;
-import com.example.bookingsystem.employee.dto.CreateEmployeeRequest;
-import com.example.bookingsystem.employee.dto.EmployeeResponse;
-import com.example.bookingsystem.employee.dto.UpdateEmployeeRequest;
+import com.example.bookingsystem.employee.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +34,13 @@ class EmployeeController {
         return service.getById(id);
     }
 
+    @GetMapping("/{id}/working-hours")
+    public List<WorkingHoursResponse> getWorkingHours(
+            @PathVariable Long id
+    ) {
+        return service.getWorkingHoursByEmployeeId(id);
+    }
+
     @PostMapping
     @AdminOnly
     @ResponseStatus(HttpStatus.CREATED)
@@ -52,5 +57,15 @@ class EmployeeController {
             @Valid @RequestBody UpdateEmployeeRequest request
     ) {
         return service.update(id, request);
+    }
+
+    @PutMapping("/{id}/working-hours")
+    @AdminOnly
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void replaceWorkingHours(
+            @PathVariable Long id,
+            @Valid @RequestBody ReplaceEmployeeWorkingHoursRequest request
+    ) {
+        service.replaceWorkingHours(id, request.workingDays());
     }
 }

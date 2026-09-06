@@ -1,10 +1,14 @@
 package com.example.bookingsystem.employee;
 
+import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
 import com.example.bookingsystem.service.ServiceEntity;
 import jakarta.persistence.*;
 
+import java.time.DayOfWeek;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name="employees")
@@ -27,6 +31,13 @@ public class Employee {
             inverseJoinColumns = @JoinColumn(name = "service_id")
     )
     private List<ServiceEntity> services = new ArrayList<>();
+
+    @OneToMany(
+            mappedBy = "employee",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<EmployeeWorkingHours> workingHours = new ArrayList<>();
 
     protected Employee() {}
 
@@ -70,5 +81,38 @@ public class Employee {
 
     public void setServices(List<ServiceEntity> services) {
         this.services = services;
+    }
+
+    public List<EmployeeWorkingHours> getWorkingHours() {
+        return workingHours.stream()
+                .sorted(Comparator.comparing(
+                        EmployeeWorkingHours::getDayOfWeek
+                ))
+                .toList();
+    }
+
+    public Optional<EmployeeWorkingHours> getWorkingHoursFor(DayOfWeek dayOfWeek) {
+        return workingHours.stream()
+                .filter(hours -> hours.getDayOfWeek() == dayOfWeek)
+                .findFirst();
+    }
+
+    public void addWorkingHours(EmployeeWorkingHours hours) {
+        workingHours.add(hours);
+        hours.setEmployee(this);
+    }
+
+    public void removeWorkingHours(EmployeeWorkingHours hours) {
+        workingHours.remove(hours);
+        hours.setEmployee(null);
+    }
+
+    public void replaceWorkingHours(List<EmployeeWorkingHours> newWorkingHours) {
+        workingHours.clear();
+        newWorkingHours.forEach(this::addWorkingHours);
+    }
+
+    public boolean providesService(ServiceEntity service) {
+        return services.contains(service);
     }
 }

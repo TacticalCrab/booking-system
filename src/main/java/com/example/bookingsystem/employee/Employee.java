@@ -15,7 +15,6 @@ import java.util.Optional;
 public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(columnDefinition = "INTEGER")
     private Long id;
 
     @Column(nullable = false)

@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 public class ServiceEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(columnDefinition = "INTEGER")
     private Long id;
 
     @Column(nullable = false)

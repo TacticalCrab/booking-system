@@ -24,7 +24,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
         SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END
         FROM Booking b
-        WHERE b.employee.id = :emplyeeId
+        WHERE b.employee.id = :employeeId
             AND b.startTime < :requestedEnd
             AND b.endTime > :requestedStart
             AND b.status <> com.example.bookingsystem.booking.BookingStatus.CANCELLED

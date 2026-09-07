@@ -5,7 +5,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.security.core.parameters.P;
 
 import java.time.LocalDateTime;
 
@@ -13,12 +12,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Page<Booking> findAllByUserEmail(
             String email,
             Pageable pageable
-    );
-
-    boolean existsByEmployee_IdAndStartTimeLessThanAndEndTimeGreaterThan(
-            Long employeeId,
-            LocalDateTime requestedStart,
-            LocalDateTime requestedEnd
     );
 
     @Query("""

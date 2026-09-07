@@ -7,6 +7,5 @@ import java.util.List;
 
 public record ReplaceEmployeeWorkingHoursRequest(
         @NotEmpty
-        @Valid
-        List<WorkingHoursRequest> workingDays
+        List<@Valid WorkingHoursRequest> workingDays
 ) {}

@@ -1,8 +1,6 @@
 package com.example.bookingsystem.booking.dto;
 
-import com.example.bookingsystem.booking.BookingStatus;
 import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 

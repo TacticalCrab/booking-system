@@ -94,7 +94,7 @@ public class EmployeeWorkingHours {
         LocalTime localEnd = end.toLocalTime();
 
         return !localStart.isBefore(startTime) &&
-                localEnd.isAfter(endTime);
+                !localEnd.isAfter(endTime);
 
     }
 }

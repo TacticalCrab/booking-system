@@ -47,7 +47,7 @@ public class Employee {
     ) {
         this.name = name;
         this.email = email;
-        this.services = services;
+        this.services = new ArrayList<>(services);
     }
 
     public Long getId() {

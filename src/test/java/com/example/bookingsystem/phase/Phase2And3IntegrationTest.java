@@ -1,4 +1,4 @@
-package com.example.bookingsystem;
+package com.example.bookingsystem.phase;
 
 import com.example.bookingsystem.booking.BookingRepository;
 import com.example.bookingsystem.employee.EmployeeRepository;

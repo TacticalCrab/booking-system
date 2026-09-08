@@ -37,6 +37,10 @@ public class EmployeeWorkingHours {
             LocalTime startTime,
             LocalTime endTime
     ) {
+        if (!endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;
         this.endTime = endTime;

@@ -27,4 +27,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("requestedStart") LocalDateTime requestedStart,
             @Param("requestedEnd") LocalDateTime requestedEnd
     );
+
+    long countByEmployeeIdAndStatus(
+            Long employeeId,
+            BookingStatus status
+    );
 }

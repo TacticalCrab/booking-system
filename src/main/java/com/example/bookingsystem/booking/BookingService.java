@@ -64,7 +64,7 @@ class BookingService {
     @Transactional
     public BookingResponse create(String email, CreateBookingRequest request) {
         User user = getUserByEmailOrThrow(email);
-        Employee employee = getEmployeeByIdOrThrow(request.employeeId());
+        Employee employee = getEmployeeByIdForUpdateOrThrow(request.employeeId());
         ServiceEntity service = getServiceByIdOrThrow(request.serviceId());
 
         validateEmployeeProvidesService(employee, service);
@@ -154,6 +154,12 @@ class BookingService {
                 .findById(employeeId)
                 .orElseThrow(() -> new NotFoundException("Employee", employeeId));
 
+    }
+
+    private Employee getEmployeeByIdForUpdateOrThrow(Long employeeId) {
+        return employeeRepository
+                .findByIdForUpdate(employeeId)
+                .orElseThrow(() -> new NotFoundException("Employee", employeeId));
     }
 
     private ServiceEntity getServiceByIdOrThrow(Long serviceId) {

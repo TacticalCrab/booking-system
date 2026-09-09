@@ -4,11 +4,7 @@ import com.example.bookingsystem.booking.Booking;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
 import com.example.bookingsystem.service.ServiceEntity;
-import com.example.bookingsystem.support.builder.BookingTestBuilder;
-import com.example.bookingsystem.support.builder.EmployeeTestBuilder;
-import com.example.bookingsystem.support.builder.EmployeeWorkingHoursTestBuilder;
-import com.example.bookingsystem.support.builder.ServiceTestBuilder;
-import com.example.bookingsystem.support.builder.UserTestBuilder;
+import com.example.bookingsystem.support.builder.*;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRole;
 

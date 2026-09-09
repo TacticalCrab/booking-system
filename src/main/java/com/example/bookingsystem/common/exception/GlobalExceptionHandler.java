@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAuthenticationFailed(
             AuthenticationFailedException exception
     ) {
-        return buildError(HttpStatus.BAD_REQUEST, exception);
+        return buildError(HttpStatus.UNAUTHORIZED, exception);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -61,7 +61,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleUserAlreadyExists(
             UserAlreadyExistsException exception
     ) {
-        return buildError(HttpStatus.BAD_REQUEST, exception);
+        return buildError(HttpStatus.CONFLICT, exception);
     }
 
     private ResponseEntity<ApiError> buildError(

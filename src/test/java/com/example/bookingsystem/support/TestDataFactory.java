@@ -15,6 +15,7 @@ import com.example.bookingsystem.user.UserRole;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -79,6 +80,18 @@ public final class TestDataFactory {
                 .mapToObj(index -> workingHoursBuilder()
                         .withId((long) index + 1)
                         .withDayOfWeek(days[index])
+                        .withStartTime(LocalTime.of(9, 0))
+                        .withEndTime(LocalTime.of(17, 0))
+                        .build())
+                .toList();
+    }
+
+    public static List<EmployeeWorkingHours> workingHoursAllWeekWithoutIds() {
+        DayOfWeek[] days = DayOfWeek.values();
+
+        return Arrays.stream(days).map(day -> workingHoursBuilder()
+                        .withId(null)
+                        .withDayOfWeek(day)
                         .withStartTime(LocalTime.of(9, 0))
                         .withEndTime(LocalTime.of(17, 0))
                         .build())

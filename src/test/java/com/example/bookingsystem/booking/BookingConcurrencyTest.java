@@ -54,10 +54,7 @@ class BookingConcurrencyTest
 
     @BeforeEach
     void setUp() {
-        bookingRepository.deleteAll();
-        employeeRepository.deleteAll();
-        serviceRepository.deleteAll();
-        userRepository.deleteAll();
+        cleanDatabase();
 
         customer = userRepository.save(
                 TestDataFactory.userBuilder()

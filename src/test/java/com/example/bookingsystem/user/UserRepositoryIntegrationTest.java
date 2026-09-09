@@ -17,7 +17,7 @@ class UserRepositoryIntegrationTest
 
     @BeforeEach
     void cleanUp() {
-        userRepository.deleteAll();
+        cleanDatabase();
     }
 
     @Test

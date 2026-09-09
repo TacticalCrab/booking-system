@@ -1,19 +1,40 @@
 package com.example.bookingsystem.support;
 
+import com.example.bookingsystem.auth.refresh.RefreshTokenRepository;
+import com.example.bookingsystem.booking.BookingRepository;
+import com.example.bookingsystem.employee.EmployeeRepository;
+import com.example.bookingsystem.service.ServiceRepository;
+import com.example.bookingsystem.user.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@Testcontainers
 @SpringBootTest
 @ActiveProfiles("test")
-public class PostgresIntegrationTest {
+@Import(TestcontainersConfiguration.class)
+public abstract class PostgresIntegrationTest {
 
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer postgres =
-            new PostgreSQLContainer("postgres:18-alpine");
+    @Autowired
+    protected BookingRepository bookingRepository;
+
+    @Autowired
+    protected RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    protected EmployeeRepository employeeRepository;
+
+    @Autowired
+    protected ServiceRepository serviceRepository;
+
+    @Autowired
+    protected UserRepository userRepository;
+
+    protected void cleanDatabase() {
+        bookingRepository.deleteAll();
+        refreshTokenRepository.deleteAll();
+        employeeRepository.deleteAll();
+        serviceRepository.deleteAll();
+        userRepository.deleteAll();
+    }
 }

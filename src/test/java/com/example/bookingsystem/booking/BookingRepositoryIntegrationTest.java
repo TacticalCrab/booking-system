@@ -40,10 +40,7 @@ class BookingRepositoryIntegrationTest
 
     @BeforeEach
     void setUp() {
-        bookingRepository.deleteAll();
-        employeeRepository.deleteAll();
-        serviceRepository.deleteAll();
-        userRepository.deleteAll();
+        cleanDatabase();
 
         user = TestDataFactory.userBuilder()
                 .withId(null)

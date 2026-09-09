@@ -7,6 +7,7 @@ import com.example.bookingsystem.support.TestDataFactory;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
 import com.example.bookingsystem.user.UserRole;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -48,6 +49,11 @@ class AuthIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private JwtEncoder jwtEncoder;
+
+    @BeforeEach
+    void setUp() {
+        cleanDatabase();
+    }
 
     @Test
     void shouldRegisterUser() throws Exception {

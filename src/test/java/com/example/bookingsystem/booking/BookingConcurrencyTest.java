@@ -1,32 +1,37 @@
 package com.example.bookingsystem.booking;
 
+import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
+import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.EmployeeRepository;
-import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.service.ServiceRepository;
+import com.example.bookingsystem.support.PostgresIntegrationTest;
+import com.example.bookingsystem.support.TestDataFactory;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
-import com.example.bookingsystem.user.UserRole;
-import org.aspectj.lang.annotation.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-@SpringBootTest
-@ActiveProfiles("test")
-public class BookingConcurrencyTest {
+import static com.example.bookingsystem.support.TestDateTimeFactory.future;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class BookingConcurrencyTest
+        extends PostgresIntegrationTest {
 
     @Autowired
     private BookingService bookingService;
@@ -43,105 +48,120 @@ public class BookingConcurrencyTest {
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    private Employee employee;
+    private User customer;
     private ServiceEntity service;
-    private User user;
+    private Employee employee;
 
     @BeforeEach
-    void setup() {
+    void setUp() {
         bookingRepository.deleteAll();
-        userRepository.deleteAll();
         employeeRepository.deleteAll();
         serviceRepository.deleteAll();
+        userRepository.deleteAll();
 
-        user = userRepository.save(
-                new User(
-                     "customer@example.com",
-                     "whatever",
-                     "Customer",
-                     UserRole.CUSTOMER
-                )
+        customer = userRepository.save(
+                TestDataFactory.userBuilder()
+                        .withId(null)
+                        .withEmail("customer@example.com")
+                        .build()
         );
 
         service = serviceRepository.save(
-                new ServiceEntity(
-                        "Shave",
-                        "Get your head shaved really quickly!",
-                        20,
-                        BigDecimal.valueOf(999.0)
-                )
+                TestDataFactory.serviceBuilder()
+                        .withId(null)
+                        .build()
         );
 
-        Employee createdEmployee = new Employee(
-                "Employee",
-                "employee@example.com",
-                List.of(service)
+        employee = employeeRepository.save(
+                TestDataFactory.employeeBuilder()
+                        .withId(null)
+                        .withEmail("employee@example.com")
+                        .withServices(
+                                new ArrayList<>(List.of(service))
+                        )
+                        .withWorkingHours(
+                                TestDataFactory.workingHoursAllWeekWithoutIds()
+                        )
+                        .build()
         );
-
-        buildMockWeekWorkingHours()
-                .forEach(createdEmployee::addWorkingHours);
-
-        employee = employeeRepository.save(createdEmployee);
-    }
-
-    private List<EmployeeWorkingHours> buildMockWeekWorkingHours() {
-        return Arrays.stream(DayOfWeek.values())
-                .map((dayOfWeek) -> new EmployeeWorkingHours(
-                        dayOfWeek,
-                        LocalTime.of(0, 0),
-                        LocalTime.of(23, 59)
-                ))
-                .toList();
     }
 
     @Test
-    void shouldNotCreateTwoOverlappingBookings() throws Exception {
-        String email = user.getEmail();
+    void shouldAllowOnlyOneBookingWhenTwoRequestsTargetSameSlot()
+            throws Exception {
+
+        LocalDateTime startTime =
+                future(DayOfWeek.MONDAY, 10, 0);
 
         CreateBookingRequest request = new CreateBookingRequest(
                 employee.getId(),
                 service.getId(),
-                LocalDateTime.of(2026, 9, 8, 10, 0)
+                startTime
         );
 
-        try (ExecutorService executorService = Executors.newFixedThreadPool(2)) {
-            CountDownLatch ready = new CountDownLatch(2);
-            CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
 
-            Callable<Object> bookingAttempt = () -> {
-                ready.countDown();
+        Callable<Object> bookingAttempt = () -> {
+            ready.countDown();
 
-                start.await();
+            start.await();
 
-                try {
-                    return bookingService.create(email, request);
-                } catch (Exception e) {
-                    return e;
-                }
-            };
+            try {
+                return bookingService.create(
+                        customer.getEmail(),
+                        request
+                );
+            } catch (Exception exception) {
+                return exception;
+            }
+        };
 
-            Future<Object> first = executorService.submit(bookingAttempt);
-            Future<Object> second = executorService.submit(bookingAttempt);
+        try (
+                ExecutorService executor =
+                        Executors.newFixedThreadPool(2)
+        ) {
+            Future<Object> first =
+                    executor.submit(bookingAttempt);
 
-            ready.await();
+            Future<Object> second =
+                    executor.submit(bookingAttempt);
+
+            assertTrue(
+                    ready.await(5, TimeUnit.SECONDS)
+            );
+
             start.countDown();
 
-            Object result1 = first.get();
-            Object result2 = second.get();
+            Object firstResult =
+                    first.get(10, TimeUnit.SECONDS);
 
-            executorService.shutdown();
+            Object secondResult =
+                    second.get(10, TimeUnit.SECONDS);
 
-            System.out.println("Result 1: " + result1);
-            System.out.println("Result 2: " + result2);
+            List<Object> results = List.of(
+                    firstResult,
+                    secondResult
+            );
+
+            long successes = results.stream()
+                    .filter(BookingResponse.class::isInstance)
+                    .count();
+
+            long conflicts = results.stream()
+                    .filter(BookingConflictException.class::isInstance)
+                    .count();
+
+            assertEquals(1, successes);
+            assertEquals(1, conflicts);
         }
 
-        long count = bookingRepository.countByEmployeeIdAndStatus(
-                employee.getId(),
-                BookingStatus.CONFIRMED
-        );
+        long confirmedBookings =
+                bookingRepository.countByEmployeeIdAndStatus(
+                        employee.getId(),
+                        BookingStatus.CONFIRMED
+                );
 
-        System.out.println("Confirmed bookings: " + count);
-
-        assert count == 1;
+        assertEquals(1, confirmedBookings);
     }
 }

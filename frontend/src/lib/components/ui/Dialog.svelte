@@ -1,0 +1,2 @@
+<script lang="ts">import type { Snippet } from 'svelte'; let { open = $bindable(false), children }: { open?: boolean; children?: Snippet } = $props();</script>
+{#if open}<div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4" role="presentation"><div role="dialog" aria-modal="true" tabindex="-1" class="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">{@render children?.()}</div></div>{/if}

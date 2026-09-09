@@ -1,0 +1,2 @@
+<script lang="ts"> import type { HTMLSelectAttributes } from 'svelte/elements'; import type { Snippet } from 'svelte'; let { class: className = '', value = $bindable(), children, ...rest }: HTMLSelectAttributes & { children?: Snippet } = $props(); </script>
+<select bind:value class={`flex h-9 w-full rounded-md border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-cyan-700 ${className}`} {...rest}>{@render children?.()}</select>

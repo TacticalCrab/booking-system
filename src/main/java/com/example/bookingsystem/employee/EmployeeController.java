@@ -3,11 +3,14 @@ package com.example.bookingsystem.employee;
 import com.example.bookingsystem.auth.annotation.AdminOnly;
 import com.example.bookingsystem.employee.dto.*;
 import jakarta.validation.Valid;
+import jakarta.websocket.server.PathParam;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -39,6 +42,15 @@ class EmployeeController {
             @PathVariable Long id
     ) {
         return service.getWorkingHoursByEmployeeId(id);
+    }
+
+    @GetMapping("/{id}/availability")
+    public EmployeeAvailabilityResponse getAvailability(
+            @PathVariable Long id,
+            @RequestParam Long serviceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return service.getAvailability(id, serviceId, date);
     }
 
     @PostMapping

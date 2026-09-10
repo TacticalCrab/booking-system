@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     Page<Booking> findAllByUserEmail(
@@ -31,5 +32,20 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     long countByEmployeeIdAndStatus(
             Long employeeId,
             BookingStatus status
+    );
+
+    @Query("""
+       SELECT b FROM Booking b
+       WHERE b.employee.id = :employeeId
+           AND b.startTime < :dayEnd
+           AND b.endTime > :dayStart
+           AND b.status <> :excludedStatus
+       ORDER BY b.startTime
+    """)
+    List<Booking> findForEmployeeOnDay(
+            Long employeeId,
+            LocalDateTime dayStart,
+            LocalDateTime dayEnd,
+            BookingStatus excludedStatus
     );
 }

@@ -1,7 +1,11 @@
 package com.example.bookingsystem.employee;
 
+import com.example.bookingsystem.booking.Booking;
+import com.example.bookingsystem.booking.BookingRepository;
+import com.example.bookingsystem.booking.BookingStatus;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.employee.dto.*;
+import com.example.bookingsystem.employee.exception.InvalidEmployeeServiceException;
 import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
 import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHoursMapper;
 import com.example.bookingsystem.service.ServiceEntity;
@@ -12,9 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,13 +27,16 @@ class EmployeeService {
 
     private final EmployeeRepository repository;
     private final ServiceRepository serviceRepository;
+    private final BookingRepository bookingRepository;
 
     public EmployeeService(
             EmployeeRepository employeeRepository,
-            ServiceRepository serviceRepository
+            ServiceRepository serviceRepository,
+            BookingRepository bookingRepository
     ) {
         repository = employeeRepository;
         this.serviceRepository = serviceRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     public Page<EmployeeResponse> getAll(Pageable pageable) {
@@ -41,6 +49,80 @@ class EmployeeService {
         Employee employee = getEmployeeByIdOrThrow(id);
 
         return EmployeeMapper.toResponse(employee);
+    }
+
+    public EmployeeAvailabilityResponse getAvailability(
+        Long employeeId,
+        Long serviceId,
+        LocalDate date
+    ) {
+        Employee employee = getEmployeeByIdOrThrow(employeeId);
+        ServiceEntity service = getServiceByIdOrThrow(serviceId);
+
+        if (!employee.providesService(service)) {
+            throw new InvalidEmployeeServiceException("Employee does not provide this service");
+        }
+
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        Optional<EmployeeWorkingHours> optionalWorkingHours = employee.getWorkingHoursFor(dayOfWeek);
+
+        if (optionalWorkingHours.isEmpty()) {
+            return new EmployeeAvailabilityResponse(
+                    employeeId,
+                    serviceId,
+                    date,
+                    List.of()
+            );
+        }
+
+        EmployeeWorkingHours workingHours = optionalWorkingHours.get();
+
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+
+        List<Booking> bookings = bookingRepository.findForEmployeeOnDay(
+                employeeId,
+                dayStart,
+                dayEnd,
+                BookingStatus.CANCELLED
+        );
+
+        LocalDateTime workingStart =
+                date.atTime(workingHours.getStartTime());
+
+        LocalDateTime workingEnd =
+                date.atTime(workingHours.getEndTime());
+
+        int serviceDuration = service.getDurationMinutes();
+
+        List<LocalTime> slots = new ArrayList<>();
+
+        for (
+                LocalDateTime slotStart = workingStart;
+                !slotStart.plusMinutes(serviceDuration).isAfter(workingEnd);
+                slotStart = slotStart.plusMinutes(30)
+        ) {
+            LocalDateTime candidateStart = slotStart;
+            LocalDateTime candidateEnd =
+                    slotStart.plusMinutes(serviceDuration);
+
+            boolean overlaps = bookings.stream()
+                    .anyMatch(booking ->
+                            booking.getStartTime().isBefore(candidateEnd)
+                            && booking.getEndTime().isAfter(candidateStart)
+                    );
+
+            if (!overlaps) {
+                slots.add(candidateStart.toLocalTime());
+            }
+        }
+
+        return new EmployeeAvailabilityResponse(
+                employeeId,
+                serviceId,
+                date,
+                slots
+        );
     }
 
     @Transactional
@@ -122,6 +204,14 @@ class EmployeeService {
         return repository
                 .findById(employeeId)
                 .orElseThrow(() -> new NotFoundException("Employee", employeeId));
+    }
+
+    private ServiceEntity getServiceByIdOrThrow(
+            Long serviceId
+    ) {
+        return serviceRepository
+                .findById(serviceId)
+                .orElseThrow(() -> new NotFoundException("Service", serviceId));
     }
 
     private void validateWorkingHours(List<WorkingHoursRequest> requests) {

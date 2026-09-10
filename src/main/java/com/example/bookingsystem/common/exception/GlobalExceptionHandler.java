@@ -4,6 +4,7 @@ import com.example.bookingsystem.auth.exception.AccessDeniedException;
 import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
 import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
+import com.example.bookingsystem.employee.exception.InvalidEmployeeServiceException;
 import com.example.bookingsystem.user.exception.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidTimeException.class)
     public ResponseEntity<ApiError> handleInvalidTime(
             InvalidTimeException exception
+    ) {
+        return buildError(HttpStatus.BAD_REQUEST, exception);
+    }
+
+    @ExceptionHandler(InvalidEmployeeServiceException.class)
+    public ResponseEntity<ApiError> handleInvalidEmployeeService(
+            InvalidEmployeeServiceException exception
     ) {
         return buildError(HttpStatus.BAD_REQUEST, exception);
     }

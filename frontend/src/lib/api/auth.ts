@@ -19,10 +19,10 @@ export const refresh = (refreshToken: string) =>
   request<{ accessToken: string; refreshToken: string }>("/api/auth/refresh", {
     method: "POST",
     body: JSON.stringify({ refreshToken }),
-  });
+  }, false);
 export const logout = (refreshToken: string) =>
   request<void>("/api/auth/logout", {
     method: "POST",
     body: JSON.stringify({ refreshToken }),
-  });
+  }, false);
 export const me = () => request<User>("/api/users/me");

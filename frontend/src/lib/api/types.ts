@@ -19,6 +19,12 @@ export interface Employee {
   email: string;
   services: Service[];
 }
+export interface EmployeeAvailability {
+  employeeId: number;
+  serviceId: number;
+  date: string;
+  slots: string[];
+}
 export interface Booking {
   id: number;
   user: User;

@@ -182,11 +182,27 @@ class BookingControllerIntegrationTest
         saveBooking(existingStart);
 
         CreateBookingRequest request = bookingRequest(
-                existingStart.plusMinutes(10)
+                existingStart
         );
 
         createBooking(request)
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenBookingStartTimeIsNotOnThirtyMinuteSlot()
+            throws Exception {
+
+        CreateBookingRequest request = bookingRequest(
+                future(DayOfWeek.MONDAY, 10, 15)
+        );
+
+        createBooking(request)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Booking must start on valid time slot"));
+
+        assertEquals(0, bookingRepository.count());
     }
 
     @Test

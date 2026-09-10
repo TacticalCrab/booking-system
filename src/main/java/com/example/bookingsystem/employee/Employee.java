@@ -96,6 +96,11 @@ public class Employee {
                 .findFirst();
     }
 
+    public boolean isWorkingOnDay(DayOfWeek dayOfWeek) {
+        return workingHours.stream()
+                .anyMatch(hours -> hours.getDayOfWeek() == dayOfWeek);
+    }
+
     public void addWorkingHours(EmployeeWorkingHours hours) {
         workingHours.add(hours);
         hours.setEmployee(this);

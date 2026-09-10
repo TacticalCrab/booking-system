@@ -389,6 +389,75 @@ public class BookingServiceTest {
     }
 
     @Test
+    void shouldCreateBookingWhenStartTimeIsOnThirtyMinuteSlot() {
+        User customer = TestDataFactory.customer();
+
+        ServiceEntity service = TestDataFactory.serviceBuilder()
+                .withId(5L)
+                .build();
+
+        Employee employee = TestDataFactory.employeeBuilder()
+                .withServices(new ArrayList<>(List.of(service)))
+                .build();
+
+        LocalDateTime slotStart = LocalDateTime.of(2026, 9, 7, 9, 30);
+        CreateBookingRequest request = new CreateBookingRequest(
+                employee.getId(),
+                service.getId(),
+                slotStart
+        );
+
+        when(userRepository.findByEmail(customer.getEmail()))
+                .thenReturn(Optional.of(customer));
+        when(employeeRepository.findByIdForUpdate(employee.getId()))
+                .thenReturn(Optional.of(employee));
+        when(serviceRepository.findById(service.getId()))
+                .thenReturn(Optional.of(service));
+        when(bookingRepository.save(any(Booking.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        bookingService.create(customer.getEmail(), request);
+
+        verify(bookingRepository).save(argThat(booking ->
+                booking.getStartTime().equals(slotStart)
+        ));
+    }
+
+    @Test
+    void shouldRejectBookingWhenStartTimeIsBetweenThirtyMinuteSlots() {
+        User customer = TestDataFactory.customer();
+
+        ServiceEntity service = TestDataFactory.serviceBuilder()
+                .withId(5L)
+                .build();
+
+        Employee employee = TestDataFactory.employeeBuilder()
+                .withServices(new ArrayList<>(List.of(service)))
+                .build();
+
+        CreateBookingRequest request = new CreateBookingRequest(
+                employee.getId(),
+                service.getId(),
+                LocalDateTime.of(2026, 9, 7, 9, 15)
+        );
+
+        when(userRepository.findByEmail(customer.getEmail()))
+                .thenReturn(Optional.of(customer));
+        when(employeeRepository.findByIdForUpdate(employee.getId()))
+                .thenReturn(Optional.of(employee));
+        when(serviceRepository.findById(service.getId()))
+                .thenReturn(Optional.of(service));
+
+        InvalidBookingException exception = assertThrows(
+                InvalidBookingException.class,
+                () -> bookingService.create(customer.getEmail(), request)
+        );
+
+        assertEquals("Booking must start on valid time slot", exception.getMessage());
+        verifyNoInteractions(bookingRepository);
+    }
+
+    @Test
     void shouldAllowOwnerToCancelBooking() {
         User user = TestDataFactory.customer();
 

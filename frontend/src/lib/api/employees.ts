@@ -1,6 +1,10 @@
 import { request } from "./client";
-import type { Employee, Page } from "./types";
+import type { Employee, EmployeeAvailability, Page } from "./types";
 export const employees = () => request<Page<Employee>>("/api/employees");
+export const availability = (employeeId: number, serviceId: number, date: string) =>
+  request<EmployeeAvailability>(
+    `/api/employees/${employeeId}/availability?serviceId=${serviceId}&date=${encodeURIComponent(date)}`,
+  );
 export const createEmployee = (
   name: string,
   email: string,

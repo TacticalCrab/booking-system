@@ -19,10 +19,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
 class BookingService {
+    private static final int SLOT_INTERVAL_MINUTES = 30;
+
     private final BookingRepository repository;
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
@@ -73,6 +76,7 @@ class BookingService {
         LocalDateTime endTime = calculateEndTime(startTime, service);
 
         validateWorkingHours(employee, startTime, endTime);
+        validateSlotInterval(employee, startTime);
         validateOverlap(employee, startTime, endTime);
 
         LocalDateTime now = LocalDateTime.now();
@@ -219,10 +223,54 @@ class BookingService {
         }
     }
 
+    private void validateSlotInterval(
+            Employee employee,
+            LocalDateTime requestedStart
+    ) {
+
+        DayOfWeek dayOfWeek = requestedStart.getDayOfWeek();
+        EmployeeWorkingHours employeeWorkingHours =
+                getEmployeeWorkingHoursForDayOrThrow(
+                        employee,
+                        dayOfWeek
+                );
+
+        LocalDateTime workingStart = requestedStart
+                .toLocalDate()
+                .atTime(employeeWorkingHours.getStartTime());
+
+        long minutesFromStart = Duration.between(
+                workingStart,
+                requestedStart
+        ).toMinutes();
+
+        if (
+                requestedStart.getSecond() != 0 ||
+                requestedStart.getNano() != 0 ||
+                minutesFromStart % SLOT_INTERVAL_MINUTES != 0
+        ) {
+            throw new InvalidBookingException(
+                    "Booking must start on valid time slot"
+            );
+        }
+    }
+
     private LocalDateTime calculateEndTime(
             LocalDateTime startTime,
             ServiceEntity service
     ) {
         return startTime.plusMinutes(service.getDurationMinutes());
+    }
+
+    private EmployeeWorkingHours getEmployeeWorkingHoursForDayOrThrow(
+            Employee employee,
+            DayOfWeek dayOfWeek
+    ) {
+
+        return employee
+                .getWorkingHoursFor(dayOfWeek)
+                .orElseThrow(() -> new InvalidBookingException(
+                        "Employee is not working on this day"
+                ));
     }
 }

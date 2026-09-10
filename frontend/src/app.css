@@ -1,2 +1,15 @@
-@import 'tailwindcss';
-@layer base { * { @apply border-slate-200; } body { @apply m-0 min-w-80 bg-slate-50 font-sans text-slate-900; } button, input, select, textarea { font: inherit; } }
+@import "tailwindcss";
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+  body {
+    @apply m-0 min-w-80 bg-slate-50 font-sans text-slate-900;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}

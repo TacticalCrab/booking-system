@@ -1,6 +1,6 @@
 package com.example.bookingsystem.user;
 
-import com.example.bookingsystem.support.PostgresIntegrationTest;
+import com.example.bookingsystem.support.IntegrationTest;
 import com.example.bookingsystem.support.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,7 +10,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class UserRepositoryIntegrationTest
-        extends PostgresIntegrationTest {
+        extends IntegrationTest {
 
     @Autowired
     private UserRepository userRepository;

@@ -5,6 +5,7 @@ import com.example.bookingsystem.auth.exception.AccessDeniedException;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
 import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
+import com.example.bookingsystem.cache.availability.AvailabilityEventPublisher;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.EmployeeRepository;
@@ -42,6 +43,9 @@ public class BookingServiceTest {
 
     @Mock
     private BookingRepository bookingRepository;
+
+    @Mock
+    private AvailabilityEventPublisher availabilityEventPublisher;
 
     @InjectMocks
     private BookingService bookingService;

@@ -7,7 +7,7 @@ import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.EmployeeRepository;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.service.ServiceRepository;
-import com.example.bookingsystem.support.PostgresIntegrationTest;
+import com.example.bookingsystem.support.IntegrationTest;
 import com.example.bookingsystem.support.TestDataFactory;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BookingConcurrencyTest
-        extends PostgresIntegrationTest {
+        extends IntegrationTest {
 
     @Autowired
     private BookingService bookingService;

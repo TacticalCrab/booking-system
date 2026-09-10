@@ -3,6 +3,7 @@ package com.example.bookingsystem.employee;
 import com.example.bookingsystem.booking.Booking;
 import com.example.bookingsystem.booking.BookingRepository;
 import com.example.bookingsystem.booking.BookingStatus;
+import com.example.bookingsystem.cache.availability.AvailabilityEventPublisher;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.employee.dto.*;
 import com.example.bookingsystem.employee.exception.InvalidEmployeeServiceException;
@@ -10,6 +11,7 @@ import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
 import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHoursMapper;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.service.ServiceRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,21 +24,26 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.example.bookingsystem.cache.CacheNames.EMPLOYEE_AVAILABILITY;
+
 @Service
 class EmployeeService {
 
     private final EmployeeRepository repository;
     private final ServiceRepository serviceRepository;
     private final BookingRepository bookingRepository;
+    private final AvailabilityEventPublisher availabilityEventPublisher;
 
     public EmployeeService(
             EmployeeRepository employeeRepository,
             ServiceRepository serviceRepository,
-            BookingRepository bookingRepository
+            BookingRepository bookingRepository,
+            AvailabilityEventPublisher availabilityEventPublisher
     ) {
         repository = employeeRepository;
         this.serviceRepository = serviceRepository;
         this.bookingRepository = bookingRepository;
+        this.availabilityEventPublisher = availabilityEventPublisher;
     }
 
     public Page<EmployeeResponse> getAll(Pageable pageable) {
@@ -51,6 +58,10 @@ class EmployeeService {
         return EmployeeMapper.toResponse(employee);
     }
 
+    @Cacheable(
+            value = EMPLOYEE_AVAILABILITY,
+            key = "#employeeId + ':' + #serviceId + ':' + #date"
+    )
     public EmployeeAvailabilityResponse getAvailability(
         Long employeeId,
         Long serviceId,
@@ -164,6 +175,9 @@ class EmployeeService {
 
         employee.setServices(services);
 
+        availabilityEventPublisher
+                .availabilityChanged(employee.getId());
+
         return EmployeeMapper.toResponse(employee);
     }
 
@@ -196,6 +210,9 @@ class EmployeeService {
                 )).toList();
 
         employee.replaceWorkingHours(workingHours);
+
+        availabilityEventPublisher
+                .availabilityChanged(employee.getId());
     }
 
     private Employee getEmployeeByIdOrThrow(

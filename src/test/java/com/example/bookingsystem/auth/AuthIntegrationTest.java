@@ -2,7 +2,7 @@ package com.example.bookingsystem.auth;
 
 import com.example.bookingsystem.auth.dto.LoginRequest;
 import com.example.bookingsystem.auth.dto.RegisterRequest;
-import com.example.bookingsystem.support.PostgresIntegrationTest;
+import com.example.bookingsystem.support.IntegrationTest;
 import com.example.bookingsystem.support.TestDataFactory;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 @AutoConfigureMockMvc
-class AuthIntegrationTest extends PostgresIntegrationTest {
+class AuthIntegrationTest extends IntegrationTest {
 
     private static final String PASSWORD = "password123";
 

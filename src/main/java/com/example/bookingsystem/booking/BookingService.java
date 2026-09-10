@@ -5,6 +5,7 @@ import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
 import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
+import com.example.bookingsystem.cache.availability.AvailabilityEventPublisher;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.EmployeeRepository;
@@ -14,12 +15,14 @@ import com.example.bookingsystem.service.ServiceRepository;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -30,17 +33,20 @@ class BookingService {
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
     private final ServiceRepository serviceRepository;
+    private final AvailabilityEventPublisher availabilityEventPublisher;
 
     BookingService(
             BookingRepository bookingRepository,
             UserRepository userRepository,
             EmployeeRepository employeeRepository,
-            ServiceRepository serviceRepository
+            ServiceRepository serviceRepository,
+            AvailabilityEventPublisher availabilityEventPublisher
     ) {
         repository = bookingRepository;
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
         this.serviceRepository = serviceRepository;
+        this.availabilityEventPublisher = availabilityEventPublisher;
     }
 
     public Page<BookingResponse> getAll(Pageable pageable) {
@@ -94,6 +100,13 @@ class BookingService {
 
         Booking savedBooking = repository.save(booking);
 
+        LocalDate bookingDate = booking.getStartTime().toLocalDate();
+        availabilityEventPublisher
+                .availabilityChanged(
+                        employee,
+                        bookingDate
+                );
+
         return BookingMapper.toResponse(savedBooking);
     }
 
@@ -101,9 +114,15 @@ class BookingService {
         Booking booking = getBookingByIdOrThrow(id);
 
         booking.setStatus(status);
-        repository.save(booking);
+        Booking savedBooking = repository.save(booking);
 
-        return BookingMapper.toResponse(booking);
+        availabilityEventPublisher
+                .availabilityChanged(
+                        savedBooking.getEmployee(),
+                        savedBooking.getStartTime().toLocalDate()
+                );
+
+        return BookingMapper.toResponse(savedBooking);
     }
 
     public BookingResponse cancel(
@@ -114,6 +133,11 @@ class BookingService {
         booking.cancel();
 
         Booking savedBooking = repository.save(booking);
+        availabilityEventPublisher
+                .availabilityChanged(
+                        savedBooking.getEmployee(),
+                        savedBooking.getStartTime().toLocalDate()
+                );
 
         return BookingMapper.toResponse(savedBooking);
     }
@@ -121,6 +145,12 @@ class BookingService {
     public void delete(Long id) {
         Booking booking = getBookingByIdOrThrow(id);
         repository.delete(booking);
+
+        availabilityEventPublisher
+                .availabilityChanged(
+                        booking.getEmployee(),
+                        booking.getStartTime().toLocalDate()
+                );
     }
 
     private Booking getAuthorizedBooking(

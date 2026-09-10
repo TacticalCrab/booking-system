@@ -13,7 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
-public abstract class PostgresIntegrationTest {
+public abstract class IntegrationTest {
 
     @Autowired
     protected BookingRepository bookingRepository;

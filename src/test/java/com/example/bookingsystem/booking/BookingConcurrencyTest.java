@@ -163,4 +163,44 @@ class BookingConcurrencyTest
 
         assertEquals(1, confirmedBookings);
     }
+
+    @Test
+    void shouldCreateOnlyOneBookingAndOutboxEventForConcurrentRetriesWithSameKey()
+            throws Exception {
+
+        CreateBookingRequest request = new CreateBookingRequest(
+                employee.getId(), service.getId(), future(DayOfWeek.MONDAY, 10, 0)
+        );
+        String key = "concurrent-retry-key";
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        Callable<Object> attempt = () -> {
+            ready.countDown();
+            start.await();
+            try {
+                return bookingService.create(customer.getEmail(), key, request);
+            } catch (Exception exception) {
+                return exception;
+            }
+        };
+
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<Object> first = executor.submit(attempt);
+            Future<Object> second = executor.submit(attempt);
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            start.countDown();
+
+            assertTrue(first.get(10, TimeUnit.SECONDS) instanceof BookingResponse);
+            assertTrue(second.get(10, TimeUnit.SECONDS) instanceof BookingResponse);
+        }
+
+        assertEquals(1, bookingRepository.count());
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM outbox_events", Integer.class
+        ));
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM idempotency_records WHERE status = 'COMPLETED'", Integer.class
+        ));
+    }
 }

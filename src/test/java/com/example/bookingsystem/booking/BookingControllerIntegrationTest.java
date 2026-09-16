@@ -165,6 +165,63 @@ class BookingControllerIntegrationTest
 
         assertEquals(firstBookingId, retriedBookingId);
         assertEquals(1, bookingRepository.count());
+        assertEquals(1, rowCount("idempotency_records"));
+        assertEquals(1, rowCount("outbox_events"));
+        assertEquals("COMPLETED", jdbcTemplate.queryForObject(
+                "SELECT status FROM idempotency_records", String.class
+        ));
+        assertEquals("BOOKING_CREATED", jdbcTemplate.queryForObject(
+                "SELECT event_type FROM outbox_events", String.class
+        ));
+    }
+
+    @Test
+    void shouldReturnConflictWithoutCreatingExtraRowsWhenKeyIsReusedForDifferentRequest()
+            throws Exception {
+
+        String key = "changed-request-key";
+        createBooking(bookingRequest(future(DayOfWeek.MONDAY, 10, 0)), key)
+                .andExpect(status().isCreated());
+
+        createBooking(bookingRequest(future(DayOfWeek.MONDAY, 10, 30)), key)
+                .andExpect(status().isConflict());
+
+        assertEquals(1, bookingRepository.count());
+        assertEquals(1, rowCount("idempotency_records"));
+        assertEquals(1, rowCount("outbox_events"));
+    }
+
+    @Test
+    void shouldRejectMissingBlankAndTooLongIdempotencyKeys() throws Exception {
+        CreateBookingRequest request = bookingRequest(future(DayOfWeek.MONDAY, 10, 0));
+
+        mockMvc.perform(post("/api/bookings")
+                        .with(user(customerPrincipal))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        createBooking(request, " ")
+                .andExpect(status().isBadRequest());
+
+        createBooking(request, "x".repeat(101))
+                .andExpect(status().isBadRequest());
+
+        assertEquals(0, bookingRepository.count());
+        assertEquals(0, rowCount("idempotency_records"));
+        assertEquals(0, rowCount("outbox_events"));
+    }
+
+    @Test
+    void shouldRollBackIdempotencyAndOutboxRecordsWhenBookingCreationFails()
+            throws Exception {
+
+        createBooking(bookingRequest(future(DayOfWeek.MONDAY, 10, 15)), "failing-key")
+                .andExpect(status().isBadRequest());
+
+        assertEquals(0, bookingRepository.count());
+        assertEquals(0, rowCount("idempotency_records"));
+        assertEquals(0, rowCount("outbox_events"));
     }
 
     @Test
@@ -571,5 +628,12 @@ class BookingControllerIntegrationTest
                 .password("unused")
                 .roles(user.getRole().name())
                 .build();
+    }
+
+    private Integer rowCount(String table) {
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + table,
+                Integer.class
+        );
     }
 }

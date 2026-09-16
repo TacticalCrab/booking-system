@@ -35,12 +35,15 @@ public abstract class IntegrationTest {
     protected JdbcTemplate jdbcTemplate;
 
     protected void cleanDatabase() {
+        // Delete dependent records before their referenced rows.
         jdbcTemplate.update("DELETE FROM outbox_events");
         jdbcTemplate.update("DELETE FROM idempotency_records");
-        bookingRepository.deleteAll();
-        refreshTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        serviceRepository.deleteAll();
-        userRepository.deleteAll();
+        jdbcTemplate.update("DELETE FROM bookings");
+        jdbcTemplate.update("DELETE FROM refresh_tokens");
+        jdbcTemplate.update("DELETE FROM employee_working_hours");
+        jdbcTemplate.update("DELETE FROM employee_services");
+        jdbcTemplate.update("DELETE FROM employees");
+        jdbcTemplate.update("DELETE FROM services");
+        jdbcTemplate.update("DELETE FROM users");
     }
 }

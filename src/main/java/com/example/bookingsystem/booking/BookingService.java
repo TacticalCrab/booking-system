@@ -3,6 +3,7 @@ package com.example.bookingsystem.booking;
 import com.example.bookingsystem.auth.exception.AccessDeniedException;
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
+import com.example.bookingsystem.booking.event.BookingCreatedEvent;
 import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
 import com.example.bookingsystem.cache.availability.AvailabilityEventPublisher;
@@ -16,6 +17,7 @@ import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,19 +36,22 @@ class BookingService {
     private final EmployeeRepository employeeRepository;
     private final ServiceRepository serviceRepository;
     private final AvailabilityEventPublisher availabilityEventPublisher;
+    private final BookingEventPublisher bookingEventPublisher;
 
     BookingService(
             BookingRepository bookingRepository,
             UserRepository userRepository,
             EmployeeRepository employeeRepository,
             ServiceRepository serviceRepository,
-            AvailabilityEventPublisher availabilityEventPublisher
+            AvailabilityEventPublisher availabilityEventPublisher,
+            BookingEventPublisher bookingEventPublisher
     ) {
         repository = bookingRepository;
         this.userRepository = userRepository;
         this.employeeRepository = employeeRepository;
         this.serviceRepository = serviceRepository;
         this.availabilityEventPublisher = availabilityEventPublisher;
+        this.bookingEventPublisher = bookingEventPublisher;
     }
 
     public Page<BookingResponse> getAll(Pageable pageable) {
@@ -106,6 +111,9 @@ class BookingService {
                         employee,
                         bookingDate
                 );
+
+        bookingEventPublisher
+                .publishCreated(savedBooking);
 
         return BookingMapper.toResponse(savedBooking);
     }

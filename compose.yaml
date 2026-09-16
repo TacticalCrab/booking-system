@@ -21,3 +21,20 @@ services:
       - "127.0.0.1:1025:1025"
       - "127.0.0.1:8025:8025"
     restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    hostname: booking-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: booking
+      RABBITMQ_DEFAULT_PASS: booking
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+
+
+volumes:
+  rabbitmq_data:

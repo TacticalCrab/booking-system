@@ -1,12 +1,11 @@
 package com.example.bookingsystem.notification;
 
 import com.example.bookingsystem.booking.event.BookingCreatedEvent;
+import com.example.bookingsystem.config.RabbitConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 
 @Component
@@ -20,10 +19,7 @@ public class BookingNotificationListener {
         this.emailService = emailService;
     }
 
-    @Async
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
+    @RabbitListener(queues = RabbitConfig.CONFIRMATION_QUEUE)
     public void onBookingCreated(BookingCreatedEvent event) {
         String body = """
                 Your booking is confirmed!

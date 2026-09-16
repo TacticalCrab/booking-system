@@ -9,12 +9,16 @@ import com.example.bookingsystem.cache.availability.AvailabilityEventPublisher;
 import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.EmployeeRepository;
+import com.example.bookingsystem.idempotency.BookingRequestHasher;
+import com.example.bookingsystem.idempotency.IdempotencyRecord;
+import com.example.bookingsystem.idempotency.IdempotencyService;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.service.ServiceRepository;
 import com.example.bookingsystem.support.TestDataFactory;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -32,6 +36,9 @@ import java.util.Optional;
 @ExtendWith(MockitoExtension.class)
 public class BookingServiceTest {
 
+    private static final String IDEMPOTENCY_KEY = "test-booking-request";
+    private static final String REQUEST_HASH = "request-hash";
+
     @Mock
     private UserRepository userRepository;
 
@@ -47,8 +54,31 @@ public class BookingServiceTest {
     @Mock
     private AvailabilityEventPublisher availabilityEventPublisher;
 
+    @Mock
+    private BookingEventPublisher bookingEventPublisher;
+
+    @Mock
+    private IdempotencyService idempotencyService;
+
+    @Mock
+    private BookingRequestHasher bookingRequestHasher;
+
+    @Mock
+    private IdempotencyRecord idempotencyRecord;
+
     @InjectMocks
     private BookingService bookingService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(bookingRequestHasher.hash(any()))
+                .thenReturn(REQUEST_HASH);
+        lenient().when(idempotencyService.reserve(
+                anyLong(),
+                anyString(),
+                eq(REQUEST_HASH)
+        )).thenReturn(idempotencyRecord);
+    }
 
     @Test
     void shouldRejectBookingWhenEmployeeDoesNotProvideService() {
@@ -81,6 +111,7 @@ public class BookingServiceTest {
                 InvalidBookingException.class,
                 () -> bookingService.create(
                         customer.getEmail(),
+                        IDEMPOTENCY_KEY,
                         request
                 )
         );
@@ -114,6 +145,7 @@ public class BookingServiceTest {
                 NotFoundException.class,
                 () -> bookingService.create(
                         customer.getEmail(),
+                        IDEMPOTENCY_KEY,
                         request
                 )
         );
@@ -154,6 +186,7 @@ public class BookingServiceTest {
                 NotFoundException.class,
                 () -> bookingService.create(
                         customer.getEmail(),
+                        IDEMPOTENCY_KEY,
                         request
                 )
         );
@@ -197,6 +230,7 @@ public class BookingServiceTest {
                 NotFoundException.class,
                 () -> bookingService.create(
                         customer.getEmail(),
+                        IDEMPOTENCY_KEY,
                         request
                 )
         );
@@ -240,6 +274,7 @@ public class BookingServiceTest {
                 InvalidBookingException.class,
                 () -> bookingService.create(
                         customer.getEmail(),
+                        IDEMPOTENCY_KEY,
                         request
                 )
         );
@@ -280,6 +315,7 @@ public class BookingServiceTest {
                 InvalidBookingException.class,
                 () -> bookingService.create(
                         customer.getEmail(),
+                        IDEMPOTENCY_KEY,
                         request
                 )
         );
@@ -331,6 +367,7 @@ public class BookingServiceTest {
                 BookingConflictException.class,
                 () -> bookingService.create(
                         customer.getEmail(),
+                        IDEMPOTENCY_KEY,
                         request
                 )
         );
@@ -372,6 +409,7 @@ public class BookingServiceTest {
 
         bookingService.create(
                 customer.getEmail(),
+                IDEMPOTENCY_KEY,
                 request
         );
 
@@ -420,7 +458,7 @@ public class BookingServiceTest {
         when(bookingRepository.save(any(Booking.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        bookingService.create(customer.getEmail(), request);
+        bookingService.create(customer.getEmail(), IDEMPOTENCY_KEY, request);
 
         verify(bookingRepository).save(argThat(booking ->
                 booking.getStartTime().equals(slotStart)
@@ -454,7 +492,11 @@ public class BookingServiceTest {
 
         InvalidBookingException exception = assertThrows(
                 InvalidBookingException.class,
-                () -> bookingService.create(customer.getEmail(), request)
+                () -> bookingService.create(
+                        customer.getEmail(),
+                        IDEMPOTENCY_KEY,
+                        request
+                )
         );
 
         assertEquals("Booking must start on valid time slot", exception.getMessage());

@@ -19,6 +19,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -107,6 +108,7 @@ class BookingConcurrencyTest
             try {
                 return bookingService.create(
                         customer.getEmail(),
+                        UUID.randomUUID().toString(),
                         request
                 );
             } catch (Exception exception) {

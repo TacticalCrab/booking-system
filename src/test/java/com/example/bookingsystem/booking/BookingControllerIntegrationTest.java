@@ -11,6 +11,7 @@ import com.example.bookingsystem.support.TestDataFactory;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
 import com.example.bookingsystem.user.UserRole;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.DayOfWeek;
@@ -93,6 +95,11 @@ class BookingControllerIntegrationTest
         customerPrincipal = principalFor(customer);
     }
 
+    @AfterEach
+    void tearDown() {
+        jdbcTemplate.update("DELETE FROM idempotency_records");
+    }
+
     @Test
     void shouldReturnUnauthorizedWhenCreatingBookingWithoutAuthentication()
             throws Exception {
@@ -130,6 +137,34 @@ class BookingControllerIntegrationTest
         assertEquals(employee.getId(), booking.getEmployee().getId());
         assertEquals(service.getId(), booking.getService().getId());
         assertEquals(BookingStatus.CONFIRMED, booking.getStatus());
+    }
+
+    @Test
+    void shouldReturnExistingBookingWhenSameRequestIsRetriedWithSameIdempotencyKey()
+            throws Exception {
+
+        CreateBookingRequest request = bookingRequest(
+                future(DayOfWeek.MONDAY, 10, 0)
+        );
+        String idempotencyKey = "retry-booking-001";
+
+        MvcResult firstResponse = createBooking(request, idempotencyKey)
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        MvcResult retryResponse = createBooking(request, idempotencyKey)
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long firstBookingId = objectMapper.readTree(
+                firstResponse.getResponse().getContentAsString()
+        ).get("id").longValue();
+        Long retriedBookingId = objectMapper.readTree(
+                retryResponse.getResponse().getContentAsString()
+        ).get("id").longValue();
+
+        assertEquals(firstBookingId, retriedBookingId);
+        assertEquals(1, bookingRepository.count());
     }
 
     @Test
@@ -417,6 +452,21 @@ class BookingControllerIntegrationTest
         return mockMvc.perform(
                 post("/api/bookings")
                         .with(user(principal))
+                        .header("Idempotency-Key", "test-booking-request")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        );
+    }
+
+    private ResultActions createBooking(
+            CreateBookingRequest request,
+            String idempotencyKey
+    ) throws Exception {
+
+        return mockMvc.perform(
+                post("/api/bookings")
+                        .with(user(customerPrincipal))
+                        .header("Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
         );

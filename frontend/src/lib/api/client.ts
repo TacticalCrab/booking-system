@@ -12,6 +12,11 @@ export class ApiError extends Error {
 const API_URL = import.meta.env.VITE_API_URL ?? "";
 let refreshInFlight: Promise<boolean> | null = null;
 
+type ApiRequestOptions = RequestInit & {
+  /** Do not send a bearer token to public authentication endpoints. */
+  authenticate?: boolean;
+};
+
 function refreshSession() {
   if (!refreshInFlight)
     refreshInFlight = auth.refresh().finally(() => {
@@ -31,16 +36,17 @@ async function messageFor(response: Response) {
 }
 export async function request<T>(
   path: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
   retry = true,
 ): Promise<T> {
-  const headers = new Headers(options.headers);
-  if (options.body) headers.set("Content-Type", "application/json");
-  const accessToken = browser ? auth.accessToken : null;
+  const { authenticate = true, ...fetchOptions } = options;
+  const headers = new Headers(fetchOptions.headers);
+  if (fetchOptions.body) headers.set("Content-Type", "application/json");
+  const accessToken = browser && authenticate ? auth.accessToken : null;
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { ...options, headers });
+    response = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers });
   } catch {
     throw new ApiError(
       0,

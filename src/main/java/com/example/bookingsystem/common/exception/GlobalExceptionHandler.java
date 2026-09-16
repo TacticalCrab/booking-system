@@ -5,10 +5,10 @@ import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
 import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
 import com.example.bookingsystem.employee.exception.InvalidEmployeeServiceException;
+import com.example.bookingsystem.idempotency.exception.IdempotencyConflictException;
 import com.example.bookingsystem.user.exception.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,6 +16,14 @@ import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    public ResponseEntity<ApiError> handleIdempotencyConflict(
+            IdempotencyConflictException exception
+    ) {
+        return buildError(HttpStatus.CONFLICT, exception);
+    }
+
     @ExceptionHandler(AuthenticationFailedException.class)
     public ResponseEntity<ApiError> handleAuthenticationFailed(
             AuthenticationFailedException exception

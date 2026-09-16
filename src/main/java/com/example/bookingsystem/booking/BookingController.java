@@ -5,6 +5,8 @@ import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
 import com.example.bookingsystem.booking.dto.UpdateBookingStatusRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -53,9 +55,19 @@ class BookingController {
     @ResponseStatus(HttpStatus.CREATED)
     public BookingResponse create(
             @AuthenticationPrincipal UserDetails principal,
+
+            @RequestHeader("Idempotency-Key")
+            @NotBlank
+            @Size(max=100)
+            String idempotencyKey,
+
             @Valid @RequestBody CreateBookingRequest request
     ) {
-        return service.create(principal.getUsername(), request);
+        return service.create(
+                principal.getUsername(),
+                idempotencyKey,
+                request
+        );
     }
 
     @DeleteMapping("/{id}")

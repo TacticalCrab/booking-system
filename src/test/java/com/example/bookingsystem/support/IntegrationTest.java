@@ -8,6 +8,7 @@ import com.example.bookingsystem.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -30,7 +31,12 @@ public abstract class IntegrationTest {
     @Autowired
     protected UserRepository userRepository;
 
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
+
     protected void cleanDatabase() {
+        jdbcTemplate.update("DELETE FROM outbox_events");
+        jdbcTemplate.update("DELETE FROM idempotency_records");
         bookingRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         employeeRepository.deleteAll();

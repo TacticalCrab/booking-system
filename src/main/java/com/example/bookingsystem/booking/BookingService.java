@@ -11,6 +11,10 @@ import com.example.bookingsystem.common.exception.NotFoundException;
 import com.example.bookingsystem.employee.Employee;
 import com.example.bookingsystem.employee.EmployeeRepository;
 import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
+import com.example.bookingsystem.idempotency.BookingRequestHasher;
+import com.example.bookingsystem.idempotency.IdempotencyRecord;
+import com.example.bookingsystem.idempotency.IdempotencyService;
+import com.example.bookingsystem.idempotency.IdempotencyStatus;
 import com.example.bookingsystem.service.ServiceEntity;
 import com.example.bookingsystem.service.ServiceRepository;
 import com.example.bookingsystem.user.User;
@@ -37,6 +41,8 @@ class BookingService {
     private final ServiceRepository serviceRepository;
     private final AvailabilityEventPublisher availabilityEventPublisher;
     private final BookingEventPublisher bookingEventPublisher;
+    private final IdempotencyService idempotencyService;
+    private final BookingRequestHasher bookingRequestHasher;
 
     BookingService(
             BookingRepository bookingRepository,
@@ -44,7 +50,7 @@ class BookingService {
             EmployeeRepository employeeRepository,
             ServiceRepository serviceRepository,
             AvailabilityEventPublisher availabilityEventPublisher,
-            BookingEventPublisher bookingEventPublisher
+            BookingEventPublisher bookingEventPublisher, IdempotencyService idempotencyService, BookingRequestHasher bookingRequestHasher
     ) {
         repository = bookingRepository;
         this.userRepository = userRepository;
@@ -52,6 +58,8 @@ class BookingService {
         this.serviceRepository = serviceRepository;
         this.availabilityEventPublisher = availabilityEventPublisher;
         this.bookingEventPublisher = bookingEventPublisher;
+        this.idempotencyService = idempotencyService;
+        this.bookingRequestHasher = bookingRequestHasher;
     }
 
     public Page<BookingResponse> getAll(Pageable pageable) {
@@ -76,8 +84,25 @@ class BookingService {
     }
 
     @Transactional
-    public BookingResponse create(String email, CreateBookingRequest request) {
+    public BookingResponse create(
+            String email,
+            String idempotencyKey,
+            CreateBookingRequest request
+    ) {
         User user = getUserByEmailOrThrow(email);
+
+        String requestHash = bookingRequestHasher.hash(request);
+
+        IdempotencyRecord idempotencyRecord = idempotencyService.reserve(
+                user.getId(),
+                idempotencyKey,
+                requestHash
+        );
+
+        if (idempotencyRecord.getStatus() == IdempotencyStatus.COMPLETED) {
+            return getPreviousBookingResponse(idempotencyRecord);
+        }
+
         Employee employee = getEmployeeByIdForUpdateOrThrow(request.employeeId());
         ServiceEntity service = getServiceByIdOrThrow(request.serviceId());
 
@@ -114,6 +139,8 @@ class BookingService {
 
         bookingEventPublisher
                 .publishCreated(savedBooking);
+
+        idempotencyRecord.complete(booking.getId());
 
         return BookingMapper.toResponse(savedBooking);
     }
@@ -208,6 +235,14 @@ class BookingService {
         return serviceRepository
                 .findById(serviceId)
                 .orElseThrow(() -> new NotFoundException("Service", serviceId));
+    }
+
+    private BookingResponse getPreviousBookingResponse(
+            IdempotencyRecord idempotencyRecord
+    ) {
+        Booking booking = getBookingByIdOrThrow(idempotencyRecord.getBookingId());
+
+        return BookingMapper.toResponse(booking);
     }
 
     private void validateEmployeeProvidesService(

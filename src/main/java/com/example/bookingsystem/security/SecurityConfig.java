@@ -1,5 +1,8 @@
 package com.example.bookingsystem.security;
 
+import com.example.bookingsystem.ratelimit.RateLimitProperties;
+import com.example.bookingsystem.ratelimit.RateLimitService;
+import com.example.bookingsystem.ratelimit.filter.BookingRateLimitFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +14,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -19,8 +23,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter
+            Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter,
+            RateLimitService rateLimitService,
+            RateLimitProperties rateLimitProperties
     ) {
+        BookingRateLimitFilter bookingRateLimitFilter =
+                new BookingRateLimitFilter(
+                        rateLimitService,
+                        rateLimitProperties
+                );
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
 
@@ -53,6 +65,11 @@ public class SecurityConfig {
                                         jwtAuthenticationConverter
                                 )
                         )
+                )
+
+                .addFilterAfter(
+                        bookingRateLimitFilter,
+                        BearerTokenAuthenticationFilter.class
                 );
 
         return http.build();

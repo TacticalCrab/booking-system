@@ -1,5 +1,6 @@
 package com.example.bookingsystem.outbox;
 
+import com.example.bookingsystem.common.logging.CorrelationId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -112,7 +113,8 @@ class OutboxPublisherTest {
 
     private OutboxEvent event() {
         OutboxEvent event = new OutboxEvent(
-                OutboxEventType.BOOKING_CREATED, "{\"bookingId\":42}"
+                OutboxEventType.BOOKING_CREATED, "{\"bookingId\":42}",
+                CorrelationId.generate()
         );
         ReflectionTestUtils.setField(event, "id", 42L);
         return event;

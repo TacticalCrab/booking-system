@@ -1,0 +1,38 @@
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+    replacement   = "$1"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+local.file_match "booking_system" {
+  path_targets = [{
+    __path__    = "/var/log/booking-system/booking-system.log",
+    application = "booking-system",
+  }]
+}
+
+loki.source.file "booking_system" {
+  targets    = local.file_match.booking_system.targets
+  forward_to = [loki.write.default.receiver]
+}

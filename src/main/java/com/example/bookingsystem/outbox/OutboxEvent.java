@@ -26,16 +26,21 @@ public class OutboxEvent {
     @Column(name = "published_at")
     private Instant publishedAt;
 
+    @Column(name = "correlation_id", nullable = false)
+    private String correlationId;
+
     protected OutboxEvent() {
     }
 
     public OutboxEvent(
             OutboxEventType eventType,
-            String payload
+            String payload,
+            String correlationId
     ) {
         this.eventType = eventType;
         this.payload = payload;
         this.createdAt = Instant.now();
+        this.correlationId = correlationId;
     }
 
     public void markPublished() {
@@ -60,5 +65,9 @@ public class OutboxEvent {
 
     public Instant getPublishedAt() {
         return publishedAt;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
     }
 }

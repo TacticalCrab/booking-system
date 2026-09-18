@@ -1,6 +1,7 @@
 package com.example.bookingsystem.notification;
 
 import com.example.bookingsystem.booking.event.BookingCreatedEvent;
+import com.example.bookingsystem.common.logging.CorrelationId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,7 +25,10 @@ class BookingNotificationListenerTest {
                 42L, "customer@example.com", "Haircut", LocalDateTime.of(2030, 1, 2, 10, 30)
         );
 
-        new BookingNotificationListener(emailService).onBookingCreated(event);
+        new BookingNotificationListener(emailService).onBookingCreated(
+                event,
+                CorrelationId.generate()
+        );
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(emailService).send(

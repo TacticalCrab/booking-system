@@ -35,6 +35,5 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     restart: unless-stopped
 
-
 volumes:
   rabbitmq_data:

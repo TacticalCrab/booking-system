@@ -7,6 +7,7 @@ export const createBooking = (
 ) =>
   request<Booking>("/api/bookings", {
     method: "POST",
+    headers: { "Idempotency-Key": crypto.randomUUID() },
     body: JSON.stringify({ employeeId, serviceId, startTime }),
   });
 export const myBookings = () => request<Page<Booking>>("/api/bookings/me");

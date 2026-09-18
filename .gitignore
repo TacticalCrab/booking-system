@@ -35,3 +35,7 @@ build/
 *.db
 
 **/src/main/resources/dev/*
+
+.env
+.env.*
+!.env.example

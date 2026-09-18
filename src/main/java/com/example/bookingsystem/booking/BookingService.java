@@ -20,8 +20,8 @@ import com.example.bookingsystem.service.ServiceRepository;
 import com.example.bookingsystem.user.User;
 import com.example.bookingsystem.user.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.context.ApplicationEventPublisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,6 +34,9 @@ import java.time.LocalDateTime;
 @Service
 class BookingService {
     private static final int SLOT_INTERVAL_MINUTES = 30;
+
+    private static final Logger log =
+            LoggerFactory.getLogger(BookingService.class);
 
     private final BookingRepository repository;
     private final UserRepository userRepository;
@@ -141,6 +144,8 @@ class BookingService {
                 .publishCreated(savedBooking);
 
         idempotencyRecord.complete(booking.getId());
+
+        log.info("Booking created: bookingId={}", booking.getId());
 
         return BookingMapper.toResponse(savedBooking);
     }

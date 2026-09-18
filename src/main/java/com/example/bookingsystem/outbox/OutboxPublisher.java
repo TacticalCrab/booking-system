@@ -1,6 +1,10 @@
 package com.example.bookingsystem.outbox;
 
+import com.example.bookingsystem.common.logging.CorrelationId;
 import com.example.bookingsystem.config.RabbitConfig;
+import com.example.bookingsystem.notification.BookingNotificationListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.core.MessageProperties;
@@ -19,6 +23,8 @@ import java.util.concurrent.TimeoutException;
 @Service
 public class OutboxPublisher {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(OutboxPublisher.class);
     private final OutboxEventRepository repository;
     private final RabbitTemplate rabbitTemplate;
 
@@ -50,10 +56,15 @@ public class OutboxPublisher {
                 .setContentType(MessageProperties.CONTENT_TYPE_JSON)
                 .setDeliveryMode(MessageDeliveryMode.PERSISTENT)
                 .setMessageId(event.getId().toString())
+                .setHeader(
+                        CorrelationId.HEADER,
+                        event.getCorrelationId()
+                )
                 .build();
 
         var correlation = new CorrelationData(UUID.randomUUID().toString());
 
+        log.debug("Publishing outbox event: eventId={}", event.getId());
         rabbitTemplate.send("", routingKey, message, correlation);
 
         var confirm = correlation.getFuture().get(5, TimeUnit.SECONDS);

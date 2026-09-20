@@ -1,9 +1,9 @@
 package com.example.bookingsystem.booking;
 
 import com.example.bookingsystem.auth.exception.AccessDeniedException;
+import com.example.bookingsystem.booking.dto.BookingCursorResponse;
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
-import com.example.bookingsystem.booking.event.BookingCreatedEvent;
 import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
 import com.example.bookingsystem.cache.availability.AvailabilityEventPublisher;
@@ -23,13 +23,16 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 class BookingService {
@@ -67,7 +70,7 @@ class BookingService {
 
     public Page<BookingResponse> getAll(Pageable pageable) {
         return repository
-                .findAll(pageable)
+                .findAllWithRelations(pageable)
                 .map(BookingMapper::toResponse);
     }
 
@@ -84,6 +87,42 @@ class BookingService {
         return repository
                 .findAllByUserEmail(email, pageable)
                 .map(BookingMapper::toResponse);
+    }
+
+    public BookingCursorResponse getBookingCursor(
+            Long afterId,
+            int size
+    ) {
+        Pageable pageable = PageRequest.of(0, size);
+
+        Slice<Booking> slice;
+
+        if (afterId == null) {
+            slice = repository
+                    .findAllByOrderByIdAsc(pageable);
+        } else {
+            slice = repository
+                    .findByIdGreaterThanOrderByIdAsc(
+                            afterId,
+                            pageable
+                    );
+        }
+
+        List<BookingResponse> content = slice
+                .getContent()
+                .stream()
+                .map(BookingMapper::toResponse)
+                .toList();
+
+        Long nextCursor = content.isEmpty()
+                ? null
+                : content.getLast().id();
+
+        return new BookingCursorResponse(
+                content,
+                nextCursor,
+                slice.hasNext()
+        );
     }
 
     @Transactional

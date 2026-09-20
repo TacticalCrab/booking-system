@@ -43,6 +43,11 @@ export interface Page<T> {
   number: number;
   size: number;
 }
+export interface BookingCursorPage {
+  content: Booking[];
+  nextCursor: number | null;
+  hasNext: boolean;
+}
 export interface ApiErrorBody {
   status?: number;
   message?: string;

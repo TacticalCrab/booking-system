@@ -1,11 +1,13 @@
 package com.example.bookingsystem.booking;
 
 import com.example.bookingsystem.auth.annotation.AdminOnly;
+import com.example.bookingsystem.booking.dto.BookingCursorResponse;
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.booking.dto.CreateBookingRequest;
 import com.example.bookingsystem.booking.dto.UpdateBookingStatusRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +51,18 @@ class BookingController {
             @AuthenticationPrincipal UserDetails principal
     ) {
         return service.getById(id, principal.getUsername());
+    }
+
+    @GetMapping("/cursor")
+    @AdminOnly
+    public BookingCursorResponse getBookingsCursor(
+            @RequestParam(required = false)
+            Long afterId,
+
+            @RequestParam(defaultValue = "20")
+            @Positive int size
+    ) {
+        return service.getBookingCursor(afterId, size);
     }
 
     @PostMapping

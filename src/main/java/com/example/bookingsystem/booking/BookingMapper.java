@@ -1,5 +1,6 @@
 package com.example.bookingsystem.booking;
 
+import com.example.bookingsystem.booking.dto.BookingEmployeeResponse;
 import com.example.bookingsystem.booking.dto.BookingResponse;
 import com.example.bookingsystem.employee.EmployeeMapper;
 import com.example.bookingsystem.employee.dto.EmployeeResponse;
@@ -13,7 +14,10 @@ public final class BookingMapper {
 
     public static BookingResponse toResponse(Booking booking) {
         UserResponse user = UserMapper.toResponse(booking.getUser());
-        EmployeeResponse employee = EmployeeMapper.toResponse(booking.getEmployee());
+
+        BookingEmployeeResponse employee = EmployeeMapper
+                .toBookingEmployeeResponse(booking.getEmployee());
+
         ServiceResponse service = ServiceMapper.toResponse(booking.getService());
 
         return new BookingResponse(

@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { Booking, BookingStatus, Page } from "./types";
+import type { Booking, BookingCursorPage, BookingStatus, Page } from "./types";
 export const createBooking = (
   employeeId: number,
   serviceId: number,
@@ -11,7 +11,8 @@ export const createBooking = (
     body: JSON.stringify({ employeeId, serviceId, startTime }),
   });
 export const myBookings = () => request<Page<Booking>>("/api/bookings/me");
-export const allBookings = () => request<Page<Booking>>("/api/bookings");
+export const allBookings = () =>
+  request<BookingCursorPage>("/api/bookings/cursor");
 export const cancelBooking = (id: number) =>
   request<Booking>(`/api/bookings/${id}/cancel`, { method: "PATCH" });
 export const updateBookingStatus = (id: number, status: BookingStatus) =>

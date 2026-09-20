@@ -2,6 +2,8 @@ package com.example.bookingsystem.booking;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -47,5 +49,30 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDateTime dayStart,
             LocalDateTime dayEnd,
             BookingStatus excludedStatus
+    );
+
+    @EntityGraph(attributePaths = {
+            "user",
+            "employee",
+            "service"
+    })
+    @Query("SELECT b FROM Booking b")
+    Page<Booking> findAllWithRelations(Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "user",
+            "employee",
+            "service"
+    })
+    Slice<Booking> findAllByOrderByIdAsc(Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "user",
+            "employee",
+            "service"
+    })
+    Slice<Booking> findByIdGreaterThanOrderByIdAsc(
+            Long id,
+            Pageable pageable
     );
 }

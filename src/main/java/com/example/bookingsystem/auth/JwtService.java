@@ -1,6 +1,6 @@
 package com.example.bookingsystem.auth;
 
-import com.example.bookingsystem.user.User;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -12,6 +12,9 @@ import java.time.Instant;
 
 @Service
 public class JwtService {
+
+    @Value("${jwt.access-token-expiration}")
+    private Duration accessTokenExpiration;
 
     private final JwtEncoder jwtEncoder;
 
@@ -27,7 +30,7 @@ public class JwtService {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("booking-system")
                 .issuedAt(now)
-                .expiresAt(now.plus(Duration.ofMinutes(15)))
+                .expiresAt(now.plus(accessTokenExpiration))
                 .subject(userClaims.userId().toString())
                 .claim("email", userClaims.email())
                 .claim("role", userClaims.role())

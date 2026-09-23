@@ -101,4 +101,18 @@ public class EmployeeWorkingHours {
                 !localEnd.isAfter(endTime);
 
     }
+
+    public void updateHours(
+            LocalTime startTime,
+            LocalTime endTime
+    ) {
+        if (!endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException(
+                    "End time must be after start time"
+            );
+        }
+
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
 }

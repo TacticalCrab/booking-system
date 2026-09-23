@@ -5,6 +5,7 @@ import com.example.bookingsystem.auth.exception.AuthenticationFailedException;
 import com.example.bookingsystem.booking.exception.BookingConflictException;
 import com.example.bookingsystem.booking.exception.InvalidBookingException;
 import com.example.bookingsystem.employee.exception.InvalidEmployeeServiceException;
+import com.example.bookingsystem.employee.exception.InvalidWorkingHoursException;
 import com.example.bookingsystem.idempotency.exception.IdempotencyConflictException;
 import com.example.bookingsystem.user.exception.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,13 @@ import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(InvalidWorkingHoursException.class)
+    public ResponseEntity<ApiError> handleInvalidWorkingHours(
+            InvalidWorkingHoursException exception
+    ) {
+        return buildError(HttpStatus.BAD_REQUEST, exception);
+    }
 
     @ExceptionHandler(IdempotencyConflictException.class)
     public ResponseEntity<ApiError> handleIdempotencyConflict(

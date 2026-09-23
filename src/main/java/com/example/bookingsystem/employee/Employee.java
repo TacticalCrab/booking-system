@@ -1,14 +1,14 @@
 package com.example.bookingsystem.employee;
 
+import com.example.bookingsystem.employee.exception.InvalidWorkingHoursException;
 import com.example.bookingsystem.employee.workinghours.EmployeeWorkingHours;
 import com.example.bookingsystem.service.ServiceEntity;
 import jakarta.persistence.*;
 
 import java.time.DayOfWeek;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name="employees")
@@ -111,12 +111,60 @@ public class Employee {
         hours.setEmployee(null);
     }
 
-    public void replaceWorkingHours(List<EmployeeWorkingHours> newWorkingHours) {
-        workingHours.clear();
-        newWorkingHours.forEach(this::addWorkingHours);
+    public void replaceWorkingHours(
+            List<EmployeeWorkingHours> newWorkingHours
+    ) {
+        Map<DayOfWeek, EmployeeWorkingHours> newByDay =
+                mapWorkingHoursByDay(newWorkingHours);
+
+        List<EmployeeWorkingHours> existingWorkingHours =
+                new ArrayList<>(workingHours);
+
+        for (EmployeeWorkingHours existing : existingWorkingHours) {
+            EmployeeWorkingHours replacement =
+                    newByDay.remove(existing.getDayOfWeek());
+
+            if (replacement == null) {
+                removeWorkingHours(existing);
+                continue;
+            }
+
+            existing.updateHours(
+                    replacement.getStartTime(),
+                    replacement.getEndTime()
+            );
+        }
+
+        newByDay.values()
+                .forEach(this::addWorkingHours);
     }
+
 
     public boolean providesService(ServiceEntity service) {
         return services.contains(service);
+    }
+
+    private Map<DayOfWeek, EmployeeWorkingHours> mapWorkingHoursByDay(
+            List<EmployeeWorkingHours> workingHours
+    ) {
+        Map<DayOfWeek, EmployeeWorkingHours> workingHoursByDay =
+                new EnumMap<>(DayOfWeek.class);
+
+        for (EmployeeWorkingHours hours : workingHours) {
+            EmployeeWorkingHours duplicate =
+                    workingHoursByDay.putIfAbsent(
+                            hours.getDayOfWeek(),
+                            hours
+                    );
+
+            if (duplicate != null) {
+                throw new InvalidWorkingHoursException(
+                        "Duplicate working day: " +
+                                hours.getDayOfWeek()
+                );
+            }
+        }
+
+        return workingHoursByDay;
     }
 }

@@ -50,6 +50,8 @@ services:
       POSTGRES_PASSWORD: booking
     ports:
       - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
 
   mailpit:
     image: axllent/mailpit
@@ -75,3 +77,4 @@ services:
 
 volumes:
   rabbitmq_data:
+  postgres_data:

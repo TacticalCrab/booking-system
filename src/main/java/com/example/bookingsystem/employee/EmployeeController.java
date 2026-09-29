@@ -3,7 +3,6 @@ package com.example.bookingsystem.employee;
 import com.example.bookingsystem.auth.annotation.AdminOnly;
 import com.example.bookingsystem.employee.dto.*;
 import jakarta.validation.Valid;
-import jakarta.websocket.server.PathParam;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -79,5 +78,14 @@ class EmployeeController {
             @Valid @RequestBody ReplaceEmployeeWorkingHoursRequest request
     ) {
         service.replaceWorkingHours(id, request.workingDays());
+    }
+
+    @PutMapping("/{id}/services")
+    @AdminOnly
+    public void replaceServices(
+            @PathVariable Long id,
+            @Valid @RequestBody ReplaceEmployeeServices request
+    ) {
+        service.replaceServices(id, request.serviceIds());
     }
 }

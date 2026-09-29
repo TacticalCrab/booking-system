@@ -215,12 +215,46 @@ class EmployeeService {
                 .availabilityChanged(employee.getId());
     }
 
+    @Transactional
+    public void replaceServices(
+            Long employeeId,
+            List<Long> serviceIds
+    ) {
+        Employee employee = getEmployeeByIdOrThrow(employeeId);
+        List<ServiceEntity> services = getServicesByIdsOrThrow(serviceIds);
+
+        employee.setServices(services);
+
+        availabilityEventPublisher
+                .availabilityChanged(employee.getId());
+    }
+
     private Employee getEmployeeByIdOrThrow(
             Long employeeId
     ) {
         return repository
                 .findById(employeeId)
                 .orElseThrow(() -> new NotFoundException("Employee", employeeId));
+    }
+
+    private List<ServiceEntity> getServicesByIdsOrThrow(
+            List<Long> serviceIds
+    ) {
+        List<ServiceEntity> services = serviceRepository
+                .findAllById(serviceIds);
+
+        Set<Long> foundIds = services.stream()
+                .map(ServiceEntity::getId)
+                .collect(Collectors.toSet());
+
+        Set<Long> missingIds = new HashSet<>(serviceIds);
+        missingIds.removeAll(foundIds);
+
+        if (!missingIds.isEmpty()) {
+            throw new NotFoundException("Service", missingIds);
+        }
+
+        return services;
     }
 
     private ServiceEntity getServiceByIdOrThrow(
